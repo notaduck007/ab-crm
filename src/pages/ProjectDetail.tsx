@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -517,14 +518,13 @@ export default function ProjectDetail() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="value">Estimated Value</Label>
-                    <Input
+                    <CurrencyInput
                       id="value"
-                      type="number"
                       value={editedProject.estimated_value || 0}
-                      onChange={(e) =>
+                      onChange={(value) =>
                         setEditedProject({
                           ...editedProject,
-                          estimated_value: parseFloat(e.target.value) || 0,
+                          estimated_value: value,
                         })
                       }
                     />

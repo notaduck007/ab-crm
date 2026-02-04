@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import {
   Table,
   TableBody,
@@ -269,14 +270,12 @@ export default function Pipeline() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="value">Estimated Value</Label>
-                  <Input
+                  <CurrencyInput
                     id="value"
-                    type="number"
                     value={newProject.estimated_value}
-                    onChange={(e) =>
-                      setNewProject({ ...newProject, estimated_value: e.target.value })
+                    onChange={(value) =>
+                      setNewProject({ ...newProject, estimated_value: value.toString() })
                     }
-                    placeholder="0"
                   />
                 </div>
                 <div className="grid gap-2">
