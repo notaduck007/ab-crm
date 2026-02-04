@@ -431,8 +431,15 @@ export default function Pipeline() {
             </TableHeader>
             <TableBody>
               {filteredProjects.map((project) => (
-                <TableRow key={project.id}>
-                  <TableCell className="font-medium">{project.name}</TableCell>
+                <TableRow key={project.id} className="cursor-pointer hover:bg-muted/50">
+                  <TableCell className="font-medium">
+                    <Link
+                      to={`/pipeline/${project.id}`}
+                      className="flex items-center gap-2 text-primary hover:underline"
+                    >
+                      {project.name}
+                    </Link>
+                  </TableCell>
                   <TableCell>
                     <Badge variant="outline">
                       {marketSectorLabels[project.market_sector]}
