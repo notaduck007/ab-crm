@@ -10,6 +10,8 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Pipeline from "./pages/Pipeline";
 import Clients from "./pages/Clients";
+import ClientDetail from "./pages/ClientDetail";
+import ProjectDetail from "./pages/ProjectDetail";
 import Contacts from "./pages/Contacts";
 import Interactions from "./pages/Interactions";
 import Settings from "./pages/Settings";
@@ -36,7 +38,9 @@ const App = () => (
             >
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/pipeline" element={<Pipeline />} />
+              <Route path="/pipeline/:id" element={<ProjectDetail />} />
               <Route path="/clients" element={<Clients />} />
+              <Route path="/clients/:id" element={<ClientDetail />} />
               <Route path="/contacts" element={<Contacts />} />
               <Route path="/interactions" element={<Interactions />} />
               <Route

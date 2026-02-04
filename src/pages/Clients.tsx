@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,7 +31,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Search, Loader2, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Loader2, AlertTriangle, ExternalLink } from 'lucide-react';
 import type {
   ClientCompany,
   Relationship,
@@ -311,8 +312,16 @@ export default function Clients() {
             </TableHeader>
             <TableBody>
               {filteredClients.map((client) => (
-                <TableRow key={client.id}>
-                  <TableCell className="font-medium">{client.name}</TableCell>
+                <TableRow key={client.id} className="cursor-pointer hover:bg-muted/50">
+                  <TableCell className="font-medium">
+                    <Link
+                      to={`/clients/${client.id}`}
+                      className="flex items-center gap-2 text-primary hover:underline"
+                    >
+                      {client.name}
+                      <ExternalLink className="h-3 w-3" />
+                    </Link>
+                  </TableCell>
                   <TableCell>
                     <Badge variant="outline">{marketSectorLabels[client.market_sector]}</Badge>
                   </TableCell>
