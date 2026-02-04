@@ -147,7 +147,7 @@ export default function ClientDetail() {
   const [isInteractionDialogOpen, setIsInteractionDialogOpen] = useState(false);
   const [newInteraction, setNewInteraction] = useState({
     interaction_type: 'Meeting' as InteractionType,
-    interaction_date: format(new Date(), 'yyyy-MM-dd'),
+    interaction_date: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
     client_contact_id: '',
     notes: '',
   });
@@ -342,11 +342,15 @@ export default function ClientDetail() {
 
     setIsSaving(true);
     try {
+      const contactId = newInteraction.client_contact_id && newInteraction.client_contact_id !== 'none' 
+        ? newInteraction.client_contact_id 
+        : null;
+      
       const { error } = await supabase.from('interactions').insert({
         client_company_id: id,
         interaction_type: newInteraction.interaction_type,
         interaction_date: newInteraction.interaction_date,
-        client_contact_id: newInteraction.client_contact_id || null,
+        client_contact_id: contactId,
         notes: newInteraction.notes || null,
         logged_by_user_id: user.id,
       });
@@ -361,7 +365,7 @@ export default function ClientDetail() {
       setIsInteractionDialogOpen(false);
       setNewInteraction({
         interaction_type: 'Meeting',
-        interaction_date: format(new Date(), 'yyyy-MM-dd'),
+        interaction_date: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
         client_contact_id: '',
         notes: '',
       });
@@ -797,10 +801,10 @@ export default function ClientDetail() {
                       </Select>
                     </div>
                     <div className="grid gap-2">
-                      <Label htmlFor="interaction_date">Date</Label>
+                      <Label htmlFor="interaction_date">Date & Time</Label>
                       <Input
                         id="interaction_date"
-                        type="date"
+                        type="datetime-local"
                         value={newInteraction.interaction_date}
                         onChange={(e) =>
                           setNewInteraction({
@@ -823,7 +827,7 @@ export default function ClientDetail() {
                         <SelectValue placeholder="Select a contact" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">No specific contact</SelectItem>
+                        <SelectItem value="none">No specific contact</SelectItem>
                         {contacts.map((contact) => (
                           <SelectItem key={contact.id} value={contact.id}>
                             {contact.first_name} {contact.last_name}
