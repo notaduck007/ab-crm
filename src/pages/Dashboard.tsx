@@ -8,19 +8,16 @@ import {
   AlertTriangle,
   Calendar,
   DollarSign,
-  Users,
   FolderKanban,
 } from 'lucide-react';
 import { format, addDays, isWithinInterval } from 'date-fns';
+import { AIRelationshipAdvisor } from '@/components/dashboard/AIRelationshipAdvisor';
 import type {
   ClientCompany,
   Relationship,
   Project,
   Interaction,
   Profile,
-  MARKET_SECTOR_LABELS,
-  RELATIONSHIP_STAGE_LABELS,
-  INTERACTION_TYPE_LABELS,
 } from '@/types/database';
 
 interface DashboardStats {
@@ -244,6 +241,9 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* AI Relationship Advisor */}
+      <AIRelationshipAdvisor atRiskRelationships={atRiskRelationships} />
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* At-Risk Relationships */}
