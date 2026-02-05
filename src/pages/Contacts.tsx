@@ -177,12 +177,13 @@ export default function Contacts() {
 
       if (error) throw error;
 
+      // Update local state immediately to remove the deleted contact
+      setContacts((prevContacts) => prevContacts.filter((c) => c.id !== contactId));
+
       toast({
         title: 'Contact deleted',
         description: `${contactName} has been permanently deleted`,
       });
-
-      fetchData();
     } catch (error) {
       console.error('Error deleting contact:', error);
       toast({

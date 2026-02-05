@@ -186,12 +186,13 @@ export default function Clients() {
 
       if (error) throw error;
 
+      // Update local state immediately to remove the deleted client
+      setClients((prevClients) => prevClients.filter((c) => c.id !== clientId));
+
       toast({
         title: 'Client deleted',
         description: `${clientName} has been permanently deleted`,
       });
-
-      fetchClients();
     } catch (error) {
       console.error('Error deleting client:', error);
       toast({
