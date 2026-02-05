@@ -38,12 +38,27 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Search, Loader2, Mail, Phone, Star, Trash2 } from 'lucide-react';
-import type { ClientContact, ClientCompany } from '@/types/database';
+import { Plus, Search, Loader2, Mail, Phone, Star, Trash2, Building2 } from 'lucide-react';
+import type { ClientContact, ClientCompany, MarketSector } from '@/types/database';
+
+const marketSectorLabels: Record<MarketSector, string> = {
+  Public: 'Public',
+  ISD: 'ISD',
+  Municipal: 'Municipal',
+  HigherEd: 'Higher Ed',
+  CharterSchool: 'Charter School',
+  Private: 'Private',
+  Other: 'Other',
+};
 
 interface ContactWithCompany extends ClientContact {
   company?: ClientCompany;
@@ -58,6 +73,12 @@ export default function Contacts() {
   const [companyFilter, setCompanyFilter] = useState<string>('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Inline company creation state
+  const [isAddingCompany, setIsAddingCompany] = useState(false);
+  const [newCompanyName, setNewCompanyName] = useState('');
+  const [newCompanyMarketSector, setNewCompanyMarketSector] = useState<MarketSector>('Other');
+  const [isCreatingCompany, setIsCreatingCompany] = useState(false);
 
   const [newContact, setNewContact] = useState({
     first_name: '',
@@ -102,6 +123,52 @@ export default function Contacts() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleCreateCompany = async () => {
+    if (!newCompanyName.trim()) {
+      toast({
+        title: 'Company name required',
+        description: 'Please enter a company name',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsCreatingCompany(true);
+    try {
+      const { data, error } = await supabase
+        .from('client_companies')
+        .insert({
+          name: newCompanyName,
+          market_sector: newCompanyMarketSector,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const newCompany = data as ClientCompany;
+      setCompanies((prev) => [...prev, newCompany].sort((a, b) => a.name.localeCompare(b.name)));
+      setNewContact({ ...newContact, client_company_id: newCompany.id });
+      setIsAddingCompany(false);
+      setNewCompanyName('');
+      setNewCompanyMarketSector('Other');
+
+      toast({
+        title: 'Company created',
+        description: `${newCompany.name} has been added`,
+      });
+    } catch (error) {
+      console.error('Error creating company:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to create company',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsCreatingCompany(false);
     }
   };
 
@@ -248,23 +315,88 @@ export default function Contacts() {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="company">Company</Label>
-                <Select
-                  value={newContact.client_company_id}
-                  onValueChange={(value) =>
-                    setNewContact({ ...newContact, client_company_id: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a company" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {companies.map((company) => (
-                      <SelectItem key={company.id} value={company.id}>
-                        {company.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  <Select
+                    value={newContact.client_company_id}
+                    onValueChange={(value) =>
+                      setNewContact({ ...newContact, client_company_id: value })
+                    }
+                  >
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Select a company" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {companies.map((company) => (
+                        <SelectItem key={company.id} value={company.id}>
+                          {company.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Popover open={isAddingCompany} onOpenChange={setIsAddingCompany}>
+                    <PopoverTrigger asChild>
+                      <Button type="button" variant="outline" size="icon" title="Add new company">
+                        <Building2 className="h-4 w-4" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80" align="end">
+                      <div className="grid gap-4">
+                        <div className="space-y-2">
+                          <h4 className="font-medium leading-none">New Company</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Add a new client company
+                          </p>
+                        </div>
+                        <div className="grid gap-3">
+                          <div className="grid gap-2">
+                            <Label htmlFor="new_company_name">Company Name</Label>
+                            <Input
+                              id="new_company_name"
+                              value={newCompanyName}
+                              onChange={(e) => setNewCompanyName(e.target.value)}
+                              placeholder="Enter company name"
+                            />
+                          </div>
+                          <div className="grid gap-2">
+                            <Label htmlFor="new_company_sector">Market Sector</Label>
+                            <Select
+                              value={newCompanyMarketSector}
+                              onValueChange={(value: MarketSector) => setNewCompanyMarketSector(value)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {Object.entries(marketSectorLabels).map(([value, label]) => (
+                                  <SelectItem key={value} value={value}>
+                                    {label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <Button
+                            onClick={handleCreateCompany}
+                            disabled={isCreatingCompany || !newCompanyName.trim()}
+                            size="sm"
+                          >
+                            {isCreatingCompany ? (
+                              <>
+                                <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                                Adding...
+                              </>
+                            ) : (
+                              <>
+                                <Plus className="mr-2 h-3 w-3" />
+                                Add Company
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="title">Title</Label>

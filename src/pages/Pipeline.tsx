@@ -43,13 +43,14 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Search, Loader2, Trash2 } from 'lucide-react';
+import { Plus, Search, Loader2, Trash2, Building2, X } from 'lucide-react';
 import { format } from 'date-fns';
 import type {
   Project,
   MarketSector,
   ProjectStatus,
   PublicTrackingType,
+  ClientCompany,
   MARKET_SECTOR_LABELS,
   PROJECT_STATUS_LABELS,
   PUBLIC_TRACKING_LABELS,
@@ -91,6 +92,7 @@ const statusColors: Record<ProjectStatus, string> = {
 export default function Pipeline() {
   const { toast } = useToast();
   const [projects, setProjects] = useState<Project[]>([]);
+  const [companies, setCompanies] = useState<ClientCompany[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -110,25 +112,29 @@ export default function Pipeline() {
     award_date: '',
     notes: '',
   });
+  const [selectedClientIds, setSelectedClientIds] = useState<string[]>([]);
 
   useEffect(() => {
-    fetchProjects();
+    fetchData();
   }, []);
 
-  const fetchProjects = async () => {
+  const fetchData = async () => {
     try {
-      const { data, error } = await supabase
-        .from('projects')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const [projectsResult, companiesResult] = await Promise.all([
+        supabase.from('projects').select('*').order('created_at', { ascending: false }),
+        supabase.from('client_companies').select('*').order('name'),
+      ]);
 
-      if (error) throw error;
-      setProjects((data as Project[]) || []);
+      if (projectsResult.error) throw projectsResult.error;
+      if (companiesResult.error) throw companiesResult.error;
+
+      setProjects((projectsResult.data as Project[]) || []);
+      setCompanies((companiesResult.data as ClientCompany[]) || []);
     } catch (error) {
-      console.error('Error fetching projects:', error);
+      console.error('Error fetching data:', error);
       toast({
         title: 'Error',
-        description: 'Failed to load projects',
+        description: 'Failed to load data',
         variant: 'destructive',
       });
     } finally {
@@ -148,19 +154,39 @@ export default function Pipeline() {
 
     setIsSaving(true);
     try {
-      const { error } = await supabase.from('projects').insert({
-        name: newProject.name,
-        market_sector: newProject.market_sector,
-        public_tracking_type: newProject.public_tracking_type,
-        estimated_value: newProject.estimated_value ? parseFloat(newProject.estimated_value) : 0,
-        status: newProject.status,
-        anticipated_rfq_date: newProject.anticipated_rfq_date || null,
-        anticipated_rfp_date: newProject.anticipated_rfp_date || null,
-        award_date: newProject.award_date || null,
-        notes: newProject.notes || null,
-      });
+      const { data: projectData, error: projectError } = await supabase
+        .from('projects')
+        .insert({
+          name: newProject.name,
+          market_sector: newProject.market_sector,
+          public_tracking_type: newProject.public_tracking_type,
+          estimated_value: newProject.estimated_value ? parseFloat(newProject.estimated_value) : 0,
+          status: newProject.status,
+          anticipated_rfq_date: newProject.anticipated_rfq_date || null,
+          anticipated_rfp_date: newProject.anticipated_rfp_date || null,
+          award_date: newProject.award_date || null,
+          notes: newProject.notes || null,
+        })
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (projectError) throw projectError;
+
+      // Link selected client companies to the project
+      if (selectedClientIds.length > 0 && projectData) {
+        const projectClientLinks = selectedClientIds.map((clientId) => ({
+          project_id: projectData.id,
+          client_company_id: clientId,
+        }));
+
+        const { error: linkError } = await supabase
+          .from('project_client_companies')
+          .insert(projectClientLinks);
+
+        if (linkError) {
+          console.error('Error linking clients:', linkError);
+        }
+      }
 
       toast({
         title: 'Project created',
@@ -179,7 +205,8 @@ export default function Pipeline() {
         award_date: '',
         notes: '',
       });
-      fetchProjects();
+      setSelectedClientIds([]);
+      fetchData();
     } catch (error) {
       console.error('Error creating project:', error);
       toast({
@@ -370,6 +397,56 @@ export default function Pipeline() {
                     }
                   />
                 </div>
+              </div>
+              <div className="grid gap-2">
+                <Label>Client Companies</Label>
+                <Select
+                  value=""
+                  onValueChange={(value) => {
+                    if (!selectedClientIds.includes(value)) {
+                      setSelectedClientIds([...selectedClientIds, value]);
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select clients to link..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {companies
+                      .filter((c) => !selectedClientIds.includes(c.id))
+                      .map((company) => (
+                        <SelectItem key={company.id} value={company.id}>
+                          {company.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                {selectedClientIds.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {selectedClientIds.map((clientId) => {
+                      const company = companies.find((c) => c.id === clientId);
+                      return (
+                        <Badge
+                          key={clientId}
+                          variant="secondary"
+                          className="flex items-center gap-1"
+                        >
+                          <Building2 className="h-3 w-3" />
+                          {company?.name}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setSelectedClientIds(selectedClientIds.filter((id) => id !== clientId))
+                            }
+                            className="ml-1 hover:text-destructive"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="notes">Notes</Label>
