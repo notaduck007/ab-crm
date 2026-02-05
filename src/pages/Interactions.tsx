@@ -28,10 +28,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Search, Loader2 } from 'lucide-react';
+import { Plus, Search, Loader2, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import type {
   Interaction,
@@ -195,6 +206,32 @@ export default function Interactions() {
       });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleDeleteInteraction = async (interactionId: string) => {
+    try {
+      const { error } = await supabase
+        .from('interactions')
+        .delete()
+        .eq('id', interactionId);
+
+      if (error) throw error;
+
+      // Update local state immediately to remove the deleted interaction
+      setInteractions((prevInteractions) => prevInteractions.filter((i) => i.id !== interactionId));
+
+      toast({
+        title: 'Interaction deleted',
+        description: 'The interaction has been permanently deleted',
+      });
+    } catch (error) {
+      console.error('Error deleting interaction:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete interaction. You may not have permission.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -407,6 +444,7 @@ export default function Interactions() {
                 <TableHead>Contact</TableHead>
                 <TableHead>Notes</TableHead>
                 <TableHead>Logged By</TableHead>
+                <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -432,6 +470,29 @@ export default function Interactions() {
                     {interaction.notes || '—'}
                   </TableCell>
                   <TableCell>{interaction.logged_by?.name || '—'}</TableCell>
+                  <TableCell>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Interaction</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete this {interactionTypeLabels[interaction.interaction_type].toLowerCase()} with {interaction.company?.name || 'unknown company'}? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDeleteInteraction(interaction.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

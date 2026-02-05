@@ -29,10 +29,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Search, Loader2 } from 'lucide-react';
+import { Plus, Search, Loader2, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import type {
   Project,
@@ -178,6 +189,32 @@ export default function Pipeline() {
       });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleDeleteProject = async (projectId: string, projectName: string) => {
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', projectId);
+
+      if (error) throw error;
+
+      // Update local state immediately to remove the deleted project
+      setProjects((prevProjects) => prevProjects.filter((p) => p.id !== projectId));
+
+      toast({
+        title: 'Project deleted',
+        description: `${projectName} has been permanently deleted`,
+      });
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete project. You may not have permission.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -426,6 +463,7 @@ export default function Pipeline() {
                 <TableHead>Value</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>RFP Date</TableHead>
+                <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -455,6 +493,29 @@ export default function Pipeline() {
                     {project.anticipated_rfp_date
                       ? format(new Date(project.anticipated_rfp_date), 'MMM d, yyyy')
                       : '—'}
+                  </TableCell>
+                  <TableCell>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Project</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete "{project.name}"? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDeleteProject(project.id, project.name)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </TableCell>
                 </TableRow>
               ))}
