@@ -27,11 +27,22 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Search, Loader2, Mail, Phone, Star } from 'lucide-react';
+import { Plus, Search, Loader2, Mail, Phone, Star, Trash2 } from 'lucide-react';
 import type { ClientContact, ClientCompany } from '@/types/database';
 
 interface ContactWithCompany extends ClientContact {
@@ -154,6 +165,31 @@ export default function Contacts() {
       });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleDeleteContact = async (contactId: string, contactName: string) => {
+    try {
+      const { error } = await supabase
+        .from('client_contacts')
+        .delete()
+        .eq('id', contactId);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Contact deleted',
+        description: `${contactName} has been permanently deleted`,
+      });
+
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting contact:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete contact. You may not have permission.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -349,6 +385,7 @@ export default function Contacts() {
                 <TableHead>Title</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Phone</TableHead>
+                <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -393,6 +430,29 @@ export default function Contacts() {
                     ) : (
                       '—'
                     )}
+                  </TableCell>
+                  <TableCell>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Contact</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete {contact.first_name} {contact.last_name}? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDeleteContact(contact.id, `${contact.first_name} ${contact.last_name}`)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </TableCell>
                 </TableRow>
               ))}
