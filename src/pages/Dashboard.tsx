@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { format, addDays, isWithinInterval } from 'date-fns';
 import { AIRelationshipAdvisor } from '@/components/dashboard/AIRelationshipAdvisor';
+import { AIChatAssistant } from '@/components/dashboard/AIChatAssistant';
 import type {
   ClientCompany,
   Relationship,
@@ -320,48 +321,54 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Recent Activity */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            Recent Activity
-          </CardTitle>
-          <CardDescription>Latest interactions across all relationships</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {recentActivity.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No recent activity to show.</p>
-          ) : (
-            <div className="space-y-3">
-              {recentActivity.map(({ interaction, company, loggedBy }) => (
-                <div
-                  key={interaction.id}
-                  className="flex items-start gap-4 rounded-lg border p-3"
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium">{company?.name || 'Unknown Company'}</p>
-                      <Badge variant="outline">
-                        {getInteractionTypeLabel(interaction.interaction_type)}
-                      </Badge>
-                    </div>
-                    {interaction.notes && (
-                      <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                        {interaction.notes}
+      {/* Recent Activity and AI Chat */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Recent Activity */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Recent Activity
+            </CardTitle>
+            <CardDescription>Latest interactions across all relationships</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {recentActivity.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No recent activity to show.</p>
+            ) : (
+              <div className="space-y-3">
+                {recentActivity.map(({ interaction, company, loggedBy }) => (
+                  <div
+                    key={interaction.id}
+                    className="flex items-start gap-4 rounded-lg border p-3"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{company?.name || 'Unknown Company'}</p>
+                        <Badge variant="outline">
+                          {getInteractionTypeLabel(interaction.interaction_type)}
+                        </Badge>
+                      </div>
+                      {interaction.notes && (
+                        <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                          {interaction.notes}
+                        </p>
+                      )}
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {loggedBy?.name || 'Unknown'} •{' '}
+                        {format(new Date(interaction.interaction_date), 'MMM d, yyyy h:mm a')}
                       </p>
-                    )}
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {loggedBy?.name || 'Unknown'} •{' '}
-                      {format(new Date(interaction.interaction_date), 'MMM d, yyyy h:mm a')}
-                    </p>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* AI Chat Assistant */}
+        <AIChatAssistant />
+      </div>
     </div>
   );
 }
