@@ -3,15 +3,25 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Bot, Send, Loader2, User, Trash2 } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
+import { Bot, Send, Loader2, User, Trash2, RefreshCw } from 'lucide-react';
+import Markdown from 'react-markdown';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  isError?: boolean;
 }
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-assistant`;
+
+// Wrapper component to avoid ref warning with react-markdown
+function MarkdownContent({ content }: { content: string }) {
+  return (
+    <div className="prose prose-sm dark:prose-invert max-w-none">
+      <Markdown>{content}</Markdown>
+    </div>
+  );
+}
 
 export function AIChatAssistant() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -161,9 +171,7 @@ export function AIChatAssistant() {
                     }`}
                   >
                     {message.role === 'assistant' ? (
-                      <div className="prose prose-sm dark:prose-invert max-w-none">
-                        <ReactMarkdown>{message.content}</ReactMarkdown>
-                      </div>
+                      <MarkdownContent content={message.content} />
                     ) : (
                       <p className="text-sm">{message.content}</p>
                     )}
