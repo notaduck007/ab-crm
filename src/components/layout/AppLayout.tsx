@@ -11,6 +11,7 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
 import { useLocation } from 'react-router-dom';
+import { ThemeToggle } from '@/components/theme/ThemeToggle';
 
 const routeTitles: Record<string, string> = {
   '/dashboard': 'Dashboard',
@@ -44,6 +45,9 @@ export function AppLayout() {
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
+            <div className="ml-auto">
+              <ThemeToggle />
+            </div>
           </header>
           <main className="flex-1 overflow-auto p-6">
             <Outlet />
