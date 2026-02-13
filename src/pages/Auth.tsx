@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Navigate, useLocation, useSearchParams } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,9 +11,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Building2, ArrowLeft } from 'lucide-react';
 
 export default function Auth() {
-  const { user, signIn, signUp, resetPassword, updatePassword, isLoading: authLoading } = useAuth();
+  const { user, signIn, signUp, isLoading: authLoading } = useAuth();
   const location = useLocation();
-  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   
   const [isLoading, setIsLoading] = useState(false);
@@ -24,49 +24,9 @@ export default function Auth() {
   const [forgotEmail, setForgotEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [showForgot, setShowForgot] = useState(false);
+  const [forgotStep, setForgotStep] = useState<'email' | 'password'>('email');
 
-  const isRecovery = searchParams.get('type') === 'recovery';
-
-  // If recovery mode and user is authenticated, show password reset
-  if (isRecovery && user && !authLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary">
-              <Building2 className="h-6 w-6 text-primary-foreground" />
-            </div>
-            <CardTitle className="text-2xl">Set New Password</CardTitle>
-            <CardDescription>Enter your new password below</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={async (e) => {
-              e.preventDefault();
-              setIsLoading(true);
-              const { error } = await updatePassword(newPassword);
-              if (error) {
-                toast({ title: 'Error', description: error.message, variant: 'destructive' });
-              } else {
-                toast({ title: 'Password updated', description: 'You can now sign in with your new password.' });
-                window.location.href = '/dashboard';
-              }
-              setIsLoading(false);
-            }} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="new-password">New Password</Label>
-                <Input id="new-password" type="password" placeholder="••••••••" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={6} disabled={isLoading} />
-              </div>
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Updating...</> : 'Update Password'}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Redirect if already logged in (non-recovery)
+  // Redirect if already logged in
   if (user && !authLoading) {
     const from = (location.state as { from?: Location })?.from?.pathname || '/dashboard';
     return <Navigate to={from} replace />;
@@ -75,13 +35,33 @@ export default function Auth() {
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    const { error } = await resetPassword(forgotEmail);
-    if (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    } else {
-      toast({ title: 'Check your email', description: 'We sent you a password reset link.' });
-      setShowForgot(false);
+
+    if (forgotStep === 'email') {
+      // Just move to password step — validation happens on submit
+      setForgotStep('password');
+      setIsLoading(false);
+      return;
     }
+
+    // Step 2: call edge function to reset password
+    try {
+      const { data, error } = await supabase.functions.invoke('reset-password', {
+        body: { email: forgotEmail, newPassword },
+      });
+
+      if (error || data?.error) {
+        toast({ title: 'Error', description: data?.error || error?.message || 'Failed to reset password', variant: 'destructive' });
+      } else {
+        toast({ title: 'Password updated', description: 'You can now sign in with your new password.' });
+        setShowForgot(false);
+        setForgotStep('email');
+        setForgotEmail('');
+        setNewPassword('');
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Something went wrong', variant: 'destructive' });
+    }
+
     setIsLoading(false);
   };
 
@@ -154,16 +134,29 @@ export default function Auth() {
         <CardContent>
           {showForgot ? (
             <div className="space-y-4">
-              <Button variant="ghost" size="sm" className="mb-2 -ml-2" onClick={() => setShowForgot(false)}>
+              <Button variant="ghost" size="sm" className="mb-2 -ml-2" onClick={() => { setShowForgot(false); setForgotStep('email'); setForgotEmail(''); setNewPassword(''); }}>
                 <ArrowLeft className="mr-2 h-4 w-4" /> Back to login
               </Button>
               <form onSubmit={handleForgotPassword} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="forgot-email">Email</Label>
-                  <Input id="forgot-email" type="email" placeholder="you@company.com" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} required disabled={isLoading} />
-                </div>
+                {forgotStep === 'email' ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="forgot-email">Email</Label>
+                    <Input id="forgot-email" type="email" placeholder="you@company.com" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} required disabled={isLoading} />
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Email</Label>
+                      <Input value={forgotEmail} disabled className="bg-muted" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="new-password">New Password</Label>
+                      <Input id="new-password" type="password" placeholder="••••••••" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={6} disabled={isLoading} />
+                    </div>
+                  </>
+                )}
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Sending...</> : 'Send Reset Link'}
+                  {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{forgotStep === 'email' ? 'Continuing...' : 'Resetting...'}</> : forgotStep === 'email' ? 'Continue' : 'Reset Password'}
                 </Button>
               </form>
             </div>
