@@ -13,6 +13,8 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, name: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<{ error: Error | null }>;
+  updatePassword: (password: string) => Promise<{ error: Error | null }>;
   refreshProfile: () => Promise<void>;
 }
 
@@ -108,6 +110,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setRole('user');
   };
 
+  const resetPassword = async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth?type=recovery`,
+    });
+    return { error: error as Error | null };
+  };
+
+  const updatePassword = async (password: string) => {
+    const { error } = await supabase.auth.updateUser({ password });
+    return { error: error as Error | null };
+  };
+
   const refreshProfile = async () => {
     if (user) {
       await fetchProfile(user.id);
@@ -124,6 +138,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signIn,
     signUp,
     signOut,
+    resetPassword,
+    updatePassword,
     refreshProfile,
   };
 
