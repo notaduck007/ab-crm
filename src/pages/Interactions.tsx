@@ -51,7 +51,9 @@ import type {
   Project,
   Profile,
   InteractionType,
+  MarketSector,
 } from '@/types/database';
+import { MARKET_SECTOR_LABELS } from '@/types/database';
 
 const interactionTypeLabels: Record<InteractionType, string> = {
   Call: 'Call',
@@ -91,6 +93,17 @@ export default function Interactions() {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Inline company creation
+  const [isCreatingCompany, setIsCreatingCompany] = useState(false);
+  const [isSavingCompany, setIsSavingCompany] = useState(false);
+  const [newCompanyName, setNewCompanyName] = useState('');
+  const [newCompanySector, setNewCompanySector] = useState<MarketSector>('Other');
+
+  // Inline project creation
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
+  const [isSavingProject, setIsSavingProject] = useState(false);
+  const [newProjectName, setNewProjectName] = useState('');
 
   const [newInteraction, setNewInteraction] = useState({
     interaction_type: 'Call' as InteractionType,
@@ -235,6 +248,53 @@ export default function Interactions() {
     }
   };
 
+  const handleQuickCreateCompany = async () => {
+    if (!newCompanyName.trim()) return;
+    setIsSavingCompany(true);
+    try {
+      const { data, error } = await supabase
+        .from('client_companies')
+        .insert({ name: newCompanyName, market_sector: newCompanySector })
+        .select()
+        .single();
+      if (error) throw error;
+      setCompanies((prev) => [...prev, data as ClientCompany].sort((a, b) => a.name.localeCompare(b.name)));
+      setNewInteraction((prev) => ({ ...prev, client_company_id: data.id, client_contact_id: '' }));
+      setNewCompanyName('');
+      setNewCompanySector('Other');
+      setIsCreatingCompany(false);
+      toast({ title: 'Company created', description: `${data.name} has been added` });
+    } catch (error) {
+      console.error('Error creating company:', error);
+      toast({ title: 'Error', description: 'Failed to create company', variant: 'destructive' });
+    } finally {
+      setIsSavingCompany(false);
+    }
+  };
+
+  const handleQuickCreateProject = async () => {
+    if (!newProjectName.trim()) return;
+    setIsSavingProject(true);
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .insert({ name: newProjectName })
+        .select()
+        .single();
+      if (error) throw error;
+      setProjects((prev) => [...prev, data as Project].sort((a, b) => a.name.localeCompare(b.name)));
+      setNewInteraction((prev) => ({ ...prev, project_id: data.id }));
+      setNewProjectName('');
+      setIsCreatingProject(false);
+      toast({ title: 'Project created', description: `${data.name} has been added` });
+    } catch (error) {
+      console.error('Error creating project:', error);
+      toast({ title: 'Error', description: 'Failed to create project', variant: 'destructive' });
+    } finally {
+      setIsSavingProject(false);
+    }
+  };
+
   const filteredContacts = contacts.filter(
     (c) => c.client_company_id === newInteraction.client_company_id
   );
@@ -298,28 +358,69 @@ export default function Interactions() {
                 </div>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="company">Company</Label>
-                <Select
-                  value={newInteraction.client_company_id}
-                  onValueChange={(value) =>
-                    setNewInteraction({
-                      ...newInteraction,
-                      client_company_id: value,
-                      client_contact_id: '',
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a company" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {companies.map((company) => (
-                      <SelectItem key={company.id} value={company.id}>
-                        {company.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="company">Company</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-xs"
+                    onClick={() => setIsCreatingCompany(!isCreatingCompany)}
+                  >
+                    <Plus className="mr-1 h-3 w-3" />
+                    New
+                  </Button>
+                </div>
+                {isCreatingCompany ? (
+                  <div className="space-y-2 rounded-md border p-3">
+                    <Input
+                      placeholder="Company name"
+                      value={newCompanyName}
+                      onChange={(e) => setNewCompanyName(e.target.value)}
+                    />
+                    <Select
+                      value={newCompanySector}
+                      onValueChange={(v: MarketSector) => setNewCompanySector(v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Market Sector" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(MARKET_SECTOR_LABELS).map(([value, label]) => (
+                          <SelectItem key={value} value={value}>{label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={handleQuickCreateCompany} disabled={isSavingCompany || !newCompanyName.trim()}>
+                        {isSavingCompany ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Create'}
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setIsCreatingCompany(false)}>Cancel</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Select
+                    value={newInteraction.client_company_id}
+                    onValueChange={(value) =>
+                      setNewInteraction({
+                        ...newInteraction,
+                        client_company_id: value,
+                        client_contact_id: '',
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a company" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {companies.map((company) => (
+                        <SelectItem key={company.id} value={company.id}>
+                          {company.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
               {newInteraction.client_company_id && filteredContacts.length > 0 && (
                 <div className="grid gap-2">
@@ -344,24 +445,52 @@ export default function Interactions() {
                 </div>
               )}
               <div className="grid gap-2">
-                <Label htmlFor="project">Project (optional)</Label>
-                <Select
-                  value={newInteraction.project_id}
-                  onValueChange={(value) =>
-                    setNewInteraction({ ...newInteraction, project_id: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a project" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {projects.map((project) => (
-                      <SelectItem key={project.id} value={project.id}>
-                        {project.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="project">Project (optional)</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-xs"
+                    onClick={() => setIsCreatingProject(!isCreatingProject)}
+                  >
+                    <Plus className="mr-1 h-3 w-3" />
+                    New
+                  </Button>
+                </div>
+                {isCreatingProject ? (
+                  <div className="space-y-2 rounded-md border p-3">
+                    <Input
+                      placeholder="Project name"
+                      value={newProjectName}
+                      onChange={(e) => setNewProjectName(e.target.value)}
+                    />
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={handleQuickCreateProject} disabled={isSavingProject || !newProjectName.trim()}>
+                        {isSavingProject ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Create'}
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setIsCreatingProject(false)}>Cancel</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Select
+                    value={newInteraction.project_id}
+                    onValueChange={(value) =>
+                      setNewInteraction({ ...newInteraction, project_id: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a project" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {projects.map((project) => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="notes">Notes</Label>
