@@ -80,15 +80,7 @@ export default function BidPipeline() {
       {view === 'inbox' ? (
         <BidInbox />
       ) : (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <Target className="mb-3 h-10 w-10 text-muted-foreground/50" />
-            <h3 className="text-base font-medium text-foreground">No pursuits yet</h3>
-            <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-              Move bids from the Inbox to start tracking active pursuits on this board.
-            </p>
-          </CardContent>
-        </Card>
+        <BidTracker />
       )}
     </div>
   );
