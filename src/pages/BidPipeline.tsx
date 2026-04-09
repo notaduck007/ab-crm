@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { differenceInDays } from 'date-fns';
 import BidInbox from '@/components/bid-pipeline/BidInbox';
+import BidTracker from '@/components/bid-pipeline/BidTracker';
 
 export default function BidPipeline() {
   const [view, setView] = useState('inbox');
