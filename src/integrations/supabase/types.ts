@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      bids: {
+        Row: {
+          agency: string
+          assigned_to: string | null
+          bid_number: string
+          bid_url: string | null
+          contact_email: string | null
+          contact_name: string | null
+          created_at: string
+          delivery_method: Database["public"]["Enums"]["delivery_method"]
+          due_date: string
+          estimated_value: number | null
+          id: string
+          issue_date: string | null
+          notes: string | null
+          project_name: string
+          sector: Database["public"]["Enums"]["bid_sector"]
+          source_portal: string | null
+          status: Database["public"]["Enums"]["bid_status"]
+          tier: Database["public"]["Enums"]["bid_tier"]
+          updated_at: string
+        }
+        Insert: {
+          agency: string
+          assigned_to?: string | null
+          bid_number: string
+          bid_url?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          created_at?: string
+          delivery_method?: Database["public"]["Enums"]["delivery_method"]
+          due_date: string
+          estimated_value?: number | null
+          id?: string
+          issue_date?: string | null
+          notes?: string | null
+          project_name: string
+          sector?: Database["public"]["Enums"]["bid_sector"]
+          source_portal?: string | null
+          status?: Database["public"]["Enums"]["bid_status"]
+          tier: Database["public"]["Enums"]["bid_tier"]
+          updated_at?: string
+        }
+        Update: {
+          agency?: string
+          assigned_to?: string | null
+          bid_number?: string
+          bid_url?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          created_at?: string
+          delivery_method?: Database["public"]["Enums"]["delivery_method"]
+          due_date?: string
+          estimated_value?: number | null
+          id?: string
+          issue_date?: string | null
+          notes?: string | null
+          project_name?: string
+          sector?: Database["public"]["Enums"]["bid_sector"]
+          source_portal?: string | null
+          status?: Database["public"]["Enums"]["bid_status"]
+          tier?: Database["public"]["Enums"]["bid_tier"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       client_companies: {
         Row: {
           created_at: string
@@ -382,6 +448,29 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      bid_sector:
+        | "ISD"
+        | "Higher Education"
+        | "City"
+        | "County"
+        | "Charter School"
+        | "Private Education"
+        | "Other"
+      bid_status:
+        | "New"
+        | "Reviewing"
+        | "Pursuing"
+        | "Submitted"
+        | "Awarded"
+        | "No-Go"
+      bid_tier: "A" | "B" | "AE"
+      delivery_method:
+        | "GC"
+        | "CMAR"
+        | "Design-Build"
+        | "RFQ/Pre-qual"
+        | "Architect-Engineer Lead"
+        | "Other"
       interaction_type:
         | "Call"
         | "Email"
@@ -542,6 +631,32 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      bid_sector: [
+        "ISD",
+        "Higher Education",
+        "City",
+        "County",
+        "Charter School",
+        "Private Education",
+        "Other",
+      ],
+      bid_status: [
+        "New",
+        "Reviewing",
+        "Pursuing",
+        "Submitted",
+        "Awarded",
+        "No-Go",
+      ],
+      bid_tier: ["A", "B", "AE"],
+      delivery_method: [
+        "GC",
+        "CMAR",
+        "Design-Build",
+        "RFQ/Pre-qual",
+        "Architect-Engineer Lead",
+        "Other",
+      ],
       interaction_type: [
         "Call",
         "Email",
