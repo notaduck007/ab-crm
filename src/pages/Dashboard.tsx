@@ -13,6 +13,8 @@ import {
 import { format, addDays, isWithinInterval } from 'date-fns';
 import { AIRelationshipAdvisor } from '@/components/dashboard/AIRelationshipAdvisor';
 import { AIChatAssistant } from '@/components/dashboard/AIChatAssistant';
+import { BidPipelineWidget } from '@/components/dashboard/BidPipelineWidget';
+import { BidDeadlineAlerts } from '@/components/bid-pipeline/BidDeadlineAlerts';
 import type {
   ClientCompany,
   Relationship,
@@ -243,6 +245,9 @@ export default function Dashboard() {
         </Card>
       </div>
 
+      {/* Bid Deadline Alerts */}
+      <BidDeadlineAlerts className="space-y-2" />
+
       {/* AI Relationship Advisor */}
       <AIRelationshipAdvisor atRiskRelationships={atRiskRelationships} />
 
@@ -365,6 +370,9 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
+
+        {/* Bid Pipeline Widget */}
+        <BidPipelineWidget />
 
         {/* AI Chat Assistant */}
         <AIChatAssistant />
