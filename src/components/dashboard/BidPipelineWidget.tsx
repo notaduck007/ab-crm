@@ -2,7 +2,6 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Gavel, CalendarClock, DollarSign, Inbox } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { differenceInDays } from 'date-fns';
@@ -19,7 +18,6 @@ export function BidPipelineWidget() {
     },
   });
 
-  const today = new Date().toISOString().slice(0, 10);
   const newBids = bids.filter((b) => b.status === 'New').length;
 
   const closing14 = bids.filter(

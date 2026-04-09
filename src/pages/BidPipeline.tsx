@@ -7,6 +7,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { differenceInDays } from 'date-fns';
 import BidInbox from '@/components/bid-pipeline/BidInbox';
 import BidTracker from '@/components/bid-pipeline/BidTracker';
+import { BidDeadlineAlerts } from '@/components/bid-pipeline/BidDeadlineAlerts';
 
 export default function BidPipeline() {
   const [view, setView] = useState('inbox');
@@ -46,6 +47,8 @@ export default function BidPipeline() {
         <h1 className="text-2xl font-bold text-foreground">Bid Pipeline</h1>
         <p className="text-sm text-muted-foreground">Daily bid intelligence — Greater Houston region</p>
       </div>
+
+      <BidDeadlineAlerts className="space-y-2" />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {stats.map((s) => (
