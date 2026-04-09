@@ -8,6 +8,7 @@ import {
   Settings,
   ChevronLeft,
   LogOut,
+  FileSearch,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
@@ -30,6 +31,7 @@ import {
 
 const mainNavItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
+  { title: 'Bid Pipeline', url: '/bid-pipeline', icon: FileSearch },
   { title: 'Pipeline', url: '/pipeline', icon: FolderKanban },
   { title: 'Clients', url: '/clients', icon: Building2 },
   { title: 'Contacts', url: '/contacts', icon: Users },
