@@ -14,6 +14,116 @@ export type Database = {
   }
   public: {
     Tables: {
+      bid_activity_log: {
+        Row: {
+          action: string
+          bid_id: string
+          created_at: string
+          id: string
+          new_value: string | null
+          old_value: string | null
+          performed_by: string | null
+        }
+        Insert: {
+          action: string
+          bid_id: string
+          created_at?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          performed_by?: string | null
+        }
+        Update: {
+          action?: string
+          bid_id?: string
+          created_at?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          performed_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bid_activity_log_bid_id_fkey"
+            columns: ["bid_id"]
+            isOneToOne: false
+            referencedRelation: "bids"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bid_client_companies: {
+        Row: {
+          bid_id: string
+          client_company_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          bid_id: string
+          client_company_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          bid_id?: string
+          client_company_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bid_client_companies_bid_id_fkey"
+            columns: ["bid_id"]
+            isOneToOne: false
+            referencedRelation: "bids"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bid_client_companies_client_company_id_fkey"
+            columns: ["client_company_id"]
+            isOneToOne: false
+            referencedRelation: "client_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bid_projects: {
+        Row: {
+          bid_id: string
+          created_at: string
+          id: string
+          project_id: string
+        }
+        Insert: {
+          bid_id: string
+          created_at?: string
+          id?: string
+          project_id: string
+        }
+        Update: {
+          bid_id?: string
+          created_at?: string
+          id?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bid_projects_bid_id_fkey"
+            columns: ["bid_id"]
+            isOneToOne: false
+            referencedRelation: "bids"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bid_projects_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bids: {
         Row: {
           agency: string
