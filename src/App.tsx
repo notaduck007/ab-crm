@@ -9,6 +9,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import BidPipeline from "./pages/BidPipeline";
 import Pipeline from "./pages/Pipeline";
 import Clients from "./pages/Clients";
 import ClientDetail from "./pages/ClientDetail";
@@ -39,6 +40,7 @@ const App = () => (
               }
             >
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/bid-pipeline" element={<BidPipeline />} />
               <Route path="/pipeline" element={<Pipeline />} />
               <Route path="/pipeline/:id" element={<ProjectDetail />} />
               <Route path="/clients" element={<Clients />} />
