@@ -30,6 +30,7 @@ import {
 import { Inbox, ExternalLink, Search, Ban, Eye, Target, Slash } from 'lucide-react';
 import { toast } from 'sonner';
 import { differenceInDays, format } from 'date-fns';
+import { formatBidValue } from '@/lib/formatValue';
 
 type Bid = Tables<'bids'>;
 type BidStatus = Bid['status'];
@@ -42,12 +43,7 @@ const TIER_STYLES: Record<string, { bg: string; text: string; label: string }> =
 
 const SECTORS = ['All', 'ISD', 'Higher Education', 'City', 'County', 'Charter School', 'Private Education', 'Other'] as const;
 
-function formatValue(v: number | null): string {
-  if (v == null) return 'Value TBD';
-  if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
-  if (v >= 1_000) return `$${(v / 1_000).toFixed(0)}K`;
-  return `$${v.toLocaleString()}`;
-}
+const formatValue = (v: number | null) => formatBidValue(v, 'compact');
 
 function daysUntil(dateStr: string) {
   return differenceInDays(new Date(dateStr), new Date());

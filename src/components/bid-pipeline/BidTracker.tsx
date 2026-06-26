@@ -20,6 +20,7 @@ import {
 import { ChevronRight, ChevronDown, Archive } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { toast } from 'sonner';
+import { formatBidValue } from '@/lib/formatValue';
 import BidDetailPanel from './BidDetailPanel';
 
 type Bid = Tables<'bids'>;
@@ -39,12 +40,7 @@ const TIER_STYLES: Record<string, { bg: string; text: string; label: string }> =
   AE: { bg: 'bg-purple-100 dark:bg-purple-900/40', text: 'text-purple-700 dark:text-purple-300', label: 'Arch/Eng' },
 };
 
-function formatValue(v: number | null): string {
-  if (v == null) return 'TBD';
-  if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
-  if (v >= 1_000) return `$${(v / 1_000).toFixed(0)}K`;
-  return `$${v.toLocaleString()}`;
-}
+const formatValue = (v: number | null) => formatBidValue(v, 'compact');
 
 function dueDateColor(dateStr: string) {
   const d = differenceInDays(new Date(dateStr), new Date());

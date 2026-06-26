@@ -8,16 +8,12 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Ban, Search, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatBidValue } from '@/lib/formatValue';
 
 type Bid = Tables<'bids'>;
 type BidStatus = Bid['status'];
 
-function formatValue(v: number | null): string {
-  if (v == null) return 'TBD';
-  if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
-  if (v >= 1_000) return `$${(v / 1_000).toFixed(0)}K`;
-  return `$${v.toLocaleString()}`;
-}
+const formatValue = (v: number | null) => formatBidValue(v, 'compact');
 
 export default function BidDeclined() {
   const queryClient = useQueryClient();
