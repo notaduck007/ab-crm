@@ -8,22 +8,18 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Ban, Search, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatBidValue } from '@/lib/formatValue';
 
 type Bid = Tables<'bids'>;
 type BidStatus = Bid['status'];
 
-function formatValue(v: number | null): string {
-  if (v == null) return 'TBD';
-  if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
-  if (v >= 1_000) return `$${(v / 1_000).toFixed(0)}K`;
-  return `$${v.toLocaleString()}`;
-}
+const formatValue = (v: number | null) => formatBidValue(v, 'compact');
 
 export default function BidDeclined() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
 
-  const { data: bids = [], isLoading } = useQuery({
+  const { data: bids = [], isLoading, error, refetch } = useQuery({
     queryKey: ['bids', 'declined'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -86,6 +82,13 @@ export default function BidDeclined() {
 
       {isLoading ? (
         <Card className="animate-pulse"><CardContent className="h-28 p-4" /></Card>
+      ) : error ? (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+            <p className="text-sm text-muted-foreground">Couldn't load bids.</p>
+            <Button size="sm" variant="outline" onClick={() => { toast.error("Couldn't load bids"); refetch(); }}>Retry</Button>
+          </CardContent>
+        </Card>
       ) : filtered.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">

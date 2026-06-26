@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Gavel, CalendarClock, DollarSign, Inbox } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { differenceInDays } from 'date-fns';
+import { formatBidValue } from '@/lib/formatValue';
 
 export function BidPipelineWidget() {
   const { data: bids = [], isLoading } = useQuery({
@@ -12,7 +13,9 @@ export function BidPipelineWidget() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('bids')
-        .select('status, due_date, estimated_value, created_at');
+        .select('status, due_date, estimated_value, created_at, archived_at')
+        .is('archived_at', null)
+        .neq('status', 'Declined');
       if (error) throw error;
       return data;
     },
@@ -30,13 +33,6 @@ export function BidPipelineWidget() {
   const pipelineValue = bids
     .filter((b) => ['Pursuing', 'Submitted'].includes(b.status))
     .reduce((sum, b) => sum + (b.estimated_value ?? 0), 0);
-
-  const formatValue = (v: number) => {
-    if (v === 0) return '$0';
-    if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
-    if (v >= 1_000) return `$${(v / 1_000).toFixed(0)}K`;
-    return `$${v}`;
-  };
 
   if (isLoading) {
     return (
@@ -87,7 +83,9 @@ export function BidPipelineWidget() {
               <DollarSign className="h-3.5 w-3.5" />
               <span className="text-xs">Pipeline</span>
             </div>
-            <p className="text-xl font-bold text-foreground">{formatValue(pipelineValue)}</p>
+            <p className="text-xl font-bold text-foreground">
+              {pipelineValue === 0 ? '$0' : formatBidValue(pipelineValue, 'compact')}
+            </p>
           </div>
         </div>
 

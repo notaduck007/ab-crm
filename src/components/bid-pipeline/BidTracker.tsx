@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,6 +20,7 @@ import {
 import { ChevronRight, ChevronDown, Archive } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { toast } from 'sonner';
+import { formatBidValue } from '@/lib/formatValue';
 import BidDetailPanel from './BidDetailPanel';
 
 type Bid = Tables<'bids'>;
@@ -39,12 +40,7 @@ const TIER_STYLES: Record<string, { bg: string; text: string; label: string }> =
   AE: { bg: 'bg-purple-100 dark:bg-purple-900/40', text: 'text-purple-700 dark:text-purple-300', label: 'Arch/Eng' },
 };
 
-function formatValue(v: number | null): string {
-  if (v == null) return 'TBD';
-  if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
-  if (v >= 1_000) return `$${(v / 1_000).toFixed(0)}K`;
-  return `$${v.toLocaleString()}`;
-}
+const formatValue = (v: number | null) => formatBidValue(v, 'compact');
 
 function dueDateColor(dateStr: string) {
   const d = differenceInDays(new Date(dateStr), new Date());
@@ -59,7 +55,7 @@ export default function BidTracker() {
   const [noGoExpanded, setNoGoExpanded] = useState(false);
   const [clearNoGoOpen, setClearNoGoOpen] = useState(false);
 
-  const { data: bids = [] } = useQuery({
+  const { data: bids = [], isLoading, error, refetch } = useQuery({
     queryKey: ['bids', 'tracker'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -118,11 +114,36 @@ export default function BidTracker() {
       if (!bid || bid.status === newStatus) return;
       updateStatus.mutate(
         { id: bidId, status: newStatus },
-        { onSuccess: () => toast.success(`Moved to ${newStatus}`) }
+        {
+          onSuccess: () => {
+            if (newStatus === 'Awarded') {
+              toast.success('Awarded — CRM project created');
+              queryClient.invalidateQueries({ queryKey: ['projects'] });
+            } else {
+              toast.success(`Moved to ${newStatus}`);
+            }
+          },
+        }
       );
     },
-    [bids, updateStatus]
+    [bids, updateStatus, queryClient]
   );
+
+  // Drag-vs-click guard: only treat as click if pointer barely moved.
+  const pointerStart = useRef<{ x: number; y: number } | null>(null);
+  const handlePointerDown = (e: React.PointerEvent) => {
+    pointerStart.current = { x: e.clientX, y: e.clientY };
+  };
+  const handleCardClick = (e: React.MouseEvent, bidId: string) => {
+    const start = pointerStart.current;
+    pointerStart.current = null;
+    if (start) {
+      const dx = e.clientX - start.x;
+      const dy = e.clientY - start.y;
+      if (Math.hypot(dx, dy) > 5) return; // it was a drag
+    }
+    setSelectedBidId(bidId);
+  };
 
   const columnBids = (status: string) => bids.filter((b) => b.status === status);
 
@@ -130,6 +151,32 @@ export default function BidTracker() {
     columnBids(status).reduce((s, b) => s + (b.estimated_value ?? 0), 0);
 
   const noGoIds = columnBids('No-Go').map((b) => b.id);
+
+  if (isLoading) {
+    return (
+      <div className="flex gap-3 overflow-x-auto pb-4">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="w-64 shrink-0 space-y-2 rounded-lg border p-2">
+            <div className="h-6 w-full animate-pulse rounded bg-muted" />
+            <div className="h-20 w-full animate-pulse rounded bg-muted" />
+            <div className="h-20 w-full animate-pulse rounded bg-muted" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    toast.error("Couldn't load bids");
+    return (
+      <Card className="border-dashed">
+        <CardContent className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+          <p className="text-sm text-muted-foreground">Couldn't load bids.</p>
+          <Button size="sm" variant="outline" onClick={() => refetch()}>Retry</Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-3">
@@ -207,7 +254,8 @@ export default function BidTracker() {
                                   ref={prov.innerRef}
                                   {...prov.draggableProps}
                                   {...prov.dragHandleProps}
-                                  onClick={() => setSelectedBidId(bid.id)}
+                                  onPointerDown={handlePointerDown}
+                                  onClick={(e) => handleCardClick(e, bid.id)}
                                 >
                                   <Card
                                     className={`cursor-pointer transition-shadow hover:shadow-md ${

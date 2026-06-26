@@ -21,6 +21,7 @@ import BidInbox from '@/components/bid-pipeline/BidInbox';
 import BidTracker from '@/components/bid-pipeline/BidTracker';
 import BidDeclined from '@/components/bid-pipeline/BidDeclined';
 import { BidDeadlineAlerts } from '@/components/bid-pipeline/BidDeadlineAlerts';
+import { ImportRunBanner } from '@/components/bid-pipeline/ImportRunBanner';
 
 export default function BidPipeline() {
   const queryClient = useQueryClient();
@@ -130,6 +131,8 @@ export default function BidPipeline() {
           <Upload className="mr-2 h-4 w-4" /> Import bids
         </Button>
       </div>
+
+      <ImportRunBanner />
 
       <BidDeadlineAlerts className="space-y-2" />
 
