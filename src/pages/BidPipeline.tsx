@@ -132,6 +132,8 @@ export default function BidPipeline() {
         </Button>
       </div>
 
+      <ImportRunBanner />
+
       <BidDeadlineAlerts className="space-y-2" />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
