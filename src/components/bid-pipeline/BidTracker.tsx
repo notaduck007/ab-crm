@@ -152,6 +152,32 @@ export default function BidTracker() {
 
   const noGoIds = columnBids('No-Go').map((b) => b.id);
 
+  if (isLoading) {
+    return (
+      <div className="flex gap-3 overflow-x-auto pb-4">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="w-64 shrink-0 space-y-2 rounded-lg border p-2">
+            <div className="h-6 w-full animate-pulse rounded bg-muted" />
+            <div className="h-20 w-full animate-pulse rounded bg-muted" />
+            <div className="h-20 w-full animate-pulse rounded bg-muted" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    toast.error("Couldn't load bids");
+    return (
+      <Card className="border-dashed">
+        <CardContent className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+          <p className="text-sm text-muted-foreground">Couldn't load bids.</p>
+          <Button size="sm" variant="outline" onClick={() => refetch()}>Retry</Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-3">
       {noGoIds.length > 0 && (
@@ -228,7 +254,8 @@ export default function BidTracker() {
                                   ref={prov.innerRef}
                                   {...prov.draggableProps}
                                   {...prov.dragHandleProps}
-                                  onClick={() => setSelectedBidId(bid.id)}
+                                  onPointerDown={handlePointerDown}
+                                  onClick={(e) => handleCardClick(e, bid.id)}
                                 >
                                   <Card
                                     className={`cursor-pointer transition-shadow hover:shadow-md ${
