@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { supabase } from '@/integrations/supabase/client';
@@ -55,7 +55,7 @@ export default function BidTracker() {
   const [noGoExpanded, setNoGoExpanded] = useState(false);
   const [clearNoGoOpen, setClearNoGoOpen] = useState(false);
 
-  const { data: bids = [] } = useQuery({
+  const { data: bids = [], isLoading, error, refetch } = useQuery({
     queryKey: ['bids', 'tracker'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -114,11 +114,36 @@ export default function BidTracker() {
       if (!bid || bid.status === newStatus) return;
       updateStatus.mutate(
         { id: bidId, status: newStatus },
-        { onSuccess: () => toast.success(`Moved to ${newStatus}`) }
+        {
+          onSuccess: () => {
+            if (newStatus === 'Awarded') {
+              toast.success('Awarded — CRM project created');
+              queryClient.invalidateQueries({ queryKey: ['projects'] });
+            } else {
+              toast.success(`Moved to ${newStatus}`);
+            }
+          },
+        }
       );
     },
-    [bids, updateStatus]
+    [bids, updateStatus, queryClient]
   );
+
+  // Drag-vs-click guard: only treat as click if pointer barely moved.
+  const pointerStart = useRef<{ x: number; y: number } | null>(null);
+  const handlePointerDown = (e: React.PointerEvent) => {
+    pointerStart.current = { x: e.clientX, y: e.clientY };
+  };
+  const handleCardClick = (e: React.MouseEvent, bidId: string) => {
+    const start = pointerStart.current;
+    pointerStart.current = null;
+    if (start) {
+      const dx = e.clientX - start.x;
+      const dy = e.clientY - start.y;
+      if (Math.hypot(dx, dy) > 5) return; // it was a drag
+    }
+    setSelectedBidId(bidId);
+  };
 
   const columnBids = (status: string) => bids.filter((b) => b.status === status);
 
