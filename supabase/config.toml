@@ -1,1 +1,4 @@
 project_id = "wgzsvbkzhigipzurlmzd"
+
+[functions.import-bids]
+verify_jwt = false
