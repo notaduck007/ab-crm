@@ -69,7 +69,7 @@ export default function BidInbox() {
   const [pending, setPending] = useState<PendingAction | null>(null);
   const [declineReason, setDeclineReason] = useState('');
 
-  const { data: bids = [], isLoading } = useQuery({
+  const { data: bids = [], isLoading, error, refetch } = useQuery({
     queryKey: ['bids', 'inbox'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -190,6 +190,18 @@ export default function BidInbox() {
           </Card>
         ))}
       </div>
+    );
+  }
+
+  if (error) {
+    toast.error("Couldn't load bids");
+    return (
+      <Card className="border-dashed">
+        <CardContent className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+          <p className="text-sm text-muted-foreground">Couldn't load bids.</p>
+          <Button size="sm" variant="outline" onClick={() => refetch()}>Retry</Button>
+        </CardContent>
+      </Card>
     );
   }
 
