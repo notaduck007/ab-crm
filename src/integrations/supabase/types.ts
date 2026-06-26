@@ -127,63 +127,78 @@ export type Database = {
       bids: {
         Row: {
           agency: string
+          archived_at: string | null
           assigned_to: string | null
-          bid_number: string
+          bid_number: string | null
           bid_url: string | null
           contact_email: string | null
           contact_name: string | null
           created_at: string
+          decline_reason: string | null
+          dedup_key: string | null
           delivery_method: Database["public"]["Enums"]["delivery_method"]
           due_date: string
           estimated_value: number | null
           id: string
           issue_date: string | null
+          last_seen_at: string | null
           notes: string | null
           project_name: string
           sector: Database["public"]["Enums"]["bid_sector"]
           source_portal: string | null
+          source_run_id: string | null
           status: Database["public"]["Enums"]["bid_status"]
           tier: Database["public"]["Enums"]["bid_tier"]
           updated_at: string
         }
         Insert: {
           agency: string
+          archived_at?: string | null
           assigned_to?: string | null
-          bid_number: string
+          bid_number?: string | null
           bid_url?: string | null
           contact_email?: string | null
           contact_name?: string | null
           created_at?: string
+          decline_reason?: string | null
+          dedup_key?: string | null
           delivery_method?: Database["public"]["Enums"]["delivery_method"]
           due_date: string
           estimated_value?: number | null
           id?: string
           issue_date?: string | null
+          last_seen_at?: string | null
           notes?: string | null
           project_name: string
           sector?: Database["public"]["Enums"]["bid_sector"]
           source_portal?: string | null
+          source_run_id?: string | null
           status?: Database["public"]["Enums"]["bid_status"]
           tier: Database["public"]["Enums"]["bid_tier"]
           updated_at?: string
         }
         Update: {
           agency?: string
+          archived_at?: string | null
           assigned_to?: string | null
-          bid_number?: string
+          bid_number?: string | null
           bid_url?: string | null
           contact_email?: string | null
           contact_name?: string | null
           created_at?: string
+          decline_reason?: string | null
+          dedup_key?: string | null
           delivery_method?: Database["public"]["Enums"]["delivery_method"]
           due_date?: string
           estimated_value?: number | null
           id?: string
           issue_date?: string | null
+          last_seen_at?: string | null
           notes?: string | null
           project_name?: string
           sector?: Database["public"]["Enums"]["bid_sector"]
           source_portal?: string | null
+          source_run_id?: string | null
           status?: Database["public"]["Enums"]["bid_status"]
           tier?: Database["public"]["Enums"]["bid_tier"]
           updated_at?: string
@@ -266,6 +281,72 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      declined_keys: {
+        Row: {
+          agency: string | null
+          bid_number: string | null
+          decline_reason: string | null
+          declined_at: string | null
+          declined_by: string | null
+          dedup_key: string
+          project_name: string | null
+        }
+        Insert: {
+          agency?: string | null
+          bid_number?: string | null
+          decline_reason?: string | null
+          declined_at?: string | null
+          declined_by?: string | null
+          dedup_key: string
+          project_name?: string | null
+        }
+        Update: {
+          agency?: string | null
+          bid_number?: string | null
+          decline_reason?: string | null
+          declined_at?: string | null
+          declined_by?: string | null
+          dedup_key?: string
+          project_name?: string | null
+        }
+        Relationships: []
+      }
+      import_runs: {
+        Row: {
+          detail: Json | null
+          errors: number | null
+          id: string
+          imported: number | null
+          ran_at: string | null
+          skipped_declined: number | null
+          skipped_dup: number | null
+          source: string | null
+          updated: number | null
+        }
+        Insert: {
+          detail?: Json | null
+          errors?: number | null
+          id?: string
+          imported?: number | null
+          ran_at?: string | null
+          skipped_declined?: number | null
+          skipped_dup?: number | null
+          source?: string | null
+          updated?: number | null
+        }
+        Update: {
+          detail?: Json | null
+          errors?: number | null
+          id?: string
+          imported?: number | null
+          ran_at?: string | null
+          skipped_declined?: number | null
+          skipped_dup?: number | null
+          source?: string | null
+          updated?: number | null
+        }
+        Relationships: []
       }
       interactions: {
         Row: {
@@ -555,6 +636,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      import_bids: { Args: { payload: Json }; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "user"
@@ -573,6 +655,7 @@ export type Database = {
         | "Submitted"
         | "Awarded"
         | "No-Go"
+        | "Declined"
       bid_tier: "A" | "B" | "AE"
       delivery_method:
         | "GC"
@@ -757,6 +840,7 @@ export const Constants = {
         "Submitted",
         "Awarded",
         "No-Go",
+        "Declined",
       ],
       bid_tier: ["A", "B", "AE"],
       delivery_method: [
