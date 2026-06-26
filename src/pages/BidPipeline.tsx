@@ -1,31 +1,75 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Inbox, Target, CalendarClock, DollarSign, Sparkles } from 'lucide-react';
+import { Inbox, Target, CalendarClock, DollarSign, Sparkles, Ban, Upload } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { differenceInDays } from 'date-fns';
+import { toast } from 'sonner';
 import BidInbox from '@/components/bid-pipeline/BidInbox';
 import BidTracker from '@/components/bid-pipeline/BidTracker';
+import BidDeclined from '@/components/bid-pipeline/BidDeclined';
 import { BidDeadlineAlerts } from '@/components/bid-pipeline/BidDeadlineAlerts';
 
 export default function BidPipeline() {
+  const queryClient = useQueryClient();
   const [view, setView] = useState('inbox');
+  const [importOpen, setImportOpen] = useState(false);
+  const [importText, setImportText] = useState('');
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
 
   const { data: allBids = [] } = useQuery({
     queryKey: ['bids', 'all-stats'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('bids').select('status, due_date, estimated_value, created_at');
+      const { data, error } = await supabase
+        .from('bids')
+        .select('status, due_date, estimated_value, created_at, archived_at')
+        .is('archived_at', null);
       if (error) throw error;
       return data;
     },
   });
 
-  const today = new Date().toISOString().slice(0, 10);
-  const newToday = allBids.filter((b) => b.status === 'New' && b.created_at?.slice(0, 10) === today).length;
+  const { data: declinedCount = 0 } = useQuery({
+    queryKey: ['bids', 'declined-count'],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('bids')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'Declined')
+        .is('archived_at', null);
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+
+  const todayStr = new Date().toDateString();
+  const newToday = allBids.filter(
+    (b) => b.status === 'New' && b.created_at && new Date(b.created_at).toDateString() === todayStr
+  ).length;
   const pursuing = allBids.filter((b) => b.status === 'Pursuing').length;
-  const closing14 = allBids.filter((b) => ['New', 'Reviewing', 'Pursuing'].includes(b.status) && differenceInDays(new Date(b.due_date), new Date()) <= 14 && differenceInDays(new Date(b.due_date), new Date()) >= 0).length;
-  const pipelineValue = allBids.filter((b) => ['New', 'Reviewing', 'Pursuing'].includes(b.status)).reduce((s, b) => s + (b.estimated_value ?? 0), 0);
+  const activeStatuses = ['New', 'Reviewing', 'Pursuing'];
+  const closing14 = allBids.filter(
+    (b) =>
+      activeStatuses.includes(b.status) &&
+      differenceInDays(new Date(b.due_date), new Date()) <= 14 &&
+      differenceInDays(new Date(b.due_date), new Date()) >= 0
+  ).length;
+  const pipelineValue = allBids
+    .filter((b) => activeStatuses.includes(b.status))
+    .reduce((s, b) => s + (b.estimated_value ?? 0), 0);
 
   const formatPipelineValue = (v: number) => {
     if (v === 0) return '—';
@@ -41,11 +85,50 @@ export default function BidPipeline() {
     { label: 'Pipeline value', value: formatPipelineValue(pipelineValue), icon: DollarSign },
   ];
 
+  const handleImport = async () => {
+    setImportError(null);
+    let parsed: any;
+    try {
+      parsed = JSON.parse(importText);
+    } catch {
+      setImportError('Invalid JSON. Please check the syntax.');
+      return;
+    }
+    if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.bids)) {
+      setImportError('JSON must include a "bids" array.');
+      return;
+    }
+    setImporting(true);
+    const { data, error } = await supabase.rpc('import_bids', { payload: parsed });
+    setImporting(false);
+    if (error) {
+      setImportError(error.message);
+      return;
+    }
+    const r = (data ?? {}) as {
+      imported?: number;
+      updated?: number;
+      skipped_declined?: number;
+      errors?: number;
+    };
+    toast.success(
+      `Imported ${r.imported ?? 0} · Updated ${r.updated ?? 0} · Skipped ${r.skipped_declined ?? 0} · Errors ${r.errors ?? 0}`
+    );
+    queryClient.invalidateQueries({ queryKey: ['bids'] });
+    setImportOpen(false);
+    setImportText('');
+  };
+
   return (
     <div className="space-y-6 p-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Bid Pipeline</h1>
-        <p className="text-sm text-muted-foreground">Daily bid intelligence — Greater Houston region</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Bid Pipeline</h1>
+          <p className="text-sm text-muted-foreground">Daily bid intelligence — Greater Houston region</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+          <Upload className="mr-2 h-4 w-4" /> Import bids
+        </Button>
       </div>
 
       <BidDeadlineAlerts className="space-y-2" />
@@ -78,13 +161,43 @@ export default function BidPipeline() {
         <ToggleGroupItem value="tracker" className="rounded-md px-4 py-1.5 text-sm font-medium data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm">
           <Target className="mr-2 h-4 w-4" /> Tracker
         </ToggleGroupItem>
+        <ToggleGroupItem value="declined" className="rounded-md px-4 py-1.5 text-sm font-medium data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm">
+          <Ban className="mr-2 h-4 w-4" /> Declined
+          {declinedCount > 0 && (
+            <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-[10px]">
+              {declinedCount}
+            </Badge>
+          )}
+        </ToggleGroupItem>
       </ToggleGroup>
 
-      {view === 'inbox' ? (
-        <BidInbox />
-      ) : (
-        <BidTracker />
-      )}
+      {view === 'inbox' && <BidInbox />}
+      {view === 'tracker' && <BidTracker />}
+      {view === 'declined' && <BidDeclined />}
+
+      <Dialog open={importOpen} onOpenChange={(open) => { setImportOpen(open); if (!open) { setImportError(null); } }}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Import bids</DialogTitle>
+            <DialogDescription>
+              Paste a JSON payload in the shape <code>{'{ "source": "manual", "bids": [ ... ] }'}</code>. This calls the same importer used by the nightly automation.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={importText}
+            onChange={(e) => setImportText(e.target.value)}
+            placeholder='{ "source": "manual", "bids": [ { "agency": "...", "project_name": "...", "due_date": "2025-04-28" } ] }'
+            className="min-h-[260px] font-mono text-xs"
+          />
+          {importError && <p className="text-xs text-destructive">{importError}</p>}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setImportOpen(false)}>Cancel</Button>
+            <Button onClick={handleImport} disabled={importing || !importText.trim()}>
+              {importing ? 'Importing…' : 'Import'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
