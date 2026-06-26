@@ -12,7 +12,6 @@ import { Separator } from '@/components/ui/separator';
 import { X, ExternalLink, Link2, Search } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
 import {
   Dialog,
   DialogContent,
@@ -48,7 +47,6 @@ interface Props {
 
 export default function BidDetailPanel({ bidId, onClose, profiles }: Props) {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
   const [notes, setNotes] = useState('');
   const [linkType, setLinkType] = useState<'client' | 'project' | null>(null);
   const [linkSearch, setLinkSearch] = useState('');
@@ -134,20 +132,11 @@ export default function BidDetailPanel({ bidId, onClose, profiles }: Props) {
     if (bid) setNotes(bid.notes ?? '');
   }, [bid]);
 
-  // Save notes on blur
+  // Save notes on blur — DB trigger logs the activity
   const saveNotes = useMutation({
     mutationFn: async (newNotes: string) => {
       const { error } = await supabase.from('bids').update({ notes: newNotes }).eq('id', bidId);
       if (error) throw error;
-      if (bid?.notes !== newNotes) {
-        await supabase.from('bid_activity_log').insert({
-          bid_id: bidId,
-          action: 'note_edit',
-          old_value: bid?.notes ?? null,
-          new_value: newNotes,
-          performed_by: user?.id ?? null,
-        });
-      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bids'] });
@@ -155,7 +144,7 @@ export default function BidDetailPanel({ bidId, onClose, profiles }: Props) {
     },
   });
 
-  // Update assigned_to
+  // Update assigned_to — DB trigger logs the activity
   const updateAssigned = useMutation({
     mutationFn: async (userId: string | null) => {
       const { error } = await supabase
@@ -163,13 +152,6 @@ export default function BidDetailPanel({ bidId, onClose, profiles }: Props) {
         .update({ assigned_to: userId })
         .eq('id', bidId);
       if (error) throw error;
-      await supabase.from('bid_activity_log').insert({
-        bid_id: bidId,
-        action: 'assigned',
-        old_value: bid?.assigned_to ?? null,
-        new_value: userId,
-        performed_by: user?.id ?? null,
-      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bids'] });
