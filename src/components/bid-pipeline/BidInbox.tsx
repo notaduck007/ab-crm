@@ -27,9 +27,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Inbox, ExternalLink, Search, Ban, Eye, Target, Slash } from 'lucide-react';
+import { Inbox, ExternalLink, Search, Ban, Eye, Target, Slash, ChevronDown, ChevronRight, X as XIcon } from 'lucide-react';
 import { toast } from 'sonner';
-import { differenceInDays, format } from 'date-fns';
+import { differenceInDays, format, startOfDay } from 'date-fns';
+import type { InboxStatFilter } from '@/pages/BidPipeline';
 import { formatBidValue } from '@/lib/formatValue';
 
 type Bid = Tables<'bids'>;
