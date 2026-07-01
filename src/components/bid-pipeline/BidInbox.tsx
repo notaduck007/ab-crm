@@ -324,10 +324,39 @@ export default function BidInbox({ statFilter = null, onClearStatFilter }: BidIn
             className="pl-8 text-sm"
           />
         </div>
+
+        <Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
+          <SelectTrigger className="h-9 w-[160px] text-xs">
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="due">Sort: Due date</SelectItem>
+            <SelectItem value="tier">Sort: Tier</SelectItem>
+            <SelectItem value="value">Sort: Est. value</SelectItem>
+            <SelectItem value="created">Sort: Created date</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
+      {/* Stat filter indicator */}
+      {statFilter && (
+        <div className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs">
+          <span className="font-medium text-foreground">
+            Filter active — {statFilter === 'new-today' ? 'New today' : 'Closing ≤14 days'}
+          </span>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="ml-auto h-6 px-2 text-xs"
+            onClick={() => onClearStatFilter?.()}
+          >
+            <XIcon className="mr-1 h-3 w-3" /> Clear
+          </Button>
+        </div>
+      )}
+
       {/* Select-all bar */}
-      {filtered.length > 0 && (
+      {activeList.length > 0 && (
         <div className="flex items-center gap-2 px-1 text-xs text-muted-foreground">
           <Checkbox
             checked={allSelected ? true : someSelected ? 'indeterminate' : false}
@@ -337,13 +366,13 @@ export default function BidInbox({ statFilter = null, onClearStatFilter }: BidIn
           <span>
             {selected.size > 0
               ? `${selected.size} selected`
-              : `Select all (${filtered.length})`}
+              : `Select all (${activeList.length})`}
           </span>
         </div>
       )}
 
       {/* Bid cards */}
-      {filtered.length === 0 ? (
+      {activeList.length === 0 && expiredList.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
             <Inbox className="mb-3 h-10 w-10 text-muted-foreground/50" />
@@ -355,7 +384,7 @@ export default function BidInbox({ statFilter = null, onClearStatFilter }: BidIn
         </Card>
       ) : (
         <div className="space-y-3">
-          {filtered.map((bid) => {
+          {activeList.map((bid) => {
             const tier = TIER_STYLES[bid.tier] ?? TIER_STYLES.B;
             const isSelected = selected.has(bid.id);
             return (
