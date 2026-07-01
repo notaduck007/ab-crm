@@ -115,15 +115,71 @@ export default function BidInbox({ statFilter = null, onClearStatFilter }: BidIn
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
+    const todayUtc = new Date().toISOString().slice(0, 10);
+    const today = startOfDay(new Date());
     return bids.filter((b) => {
       if (tierFilter !== 'All' && b.tier !== tierFilter) return false;
       if (sectorFilter !== 'All' && b.sector !== sectorFilter) return false;
       if (q && !b.project_name.toLowerCase().includes(q) && !b.agency.toLowerCase().includes(q)) return false;
+      if (statFilter === 'new-today') {
+        if (!b.created_at) return false;
+        if (new Date(b.created_at).toISOString().slice(0, 10) !== todayUtc) return false;
+      }
+      if (statFilter === 'closing-14d') {
+        if (!b.due_date) return false;
+        const d = differenceInDays(new Date(b.due_date), today);
+        if (d < 0 || d > 14) return false;
+      }
       return true;
     });
-  }, [bids, tierFilter, sectorFilter, search]);
+  }, [bids, tierFilter, sectorFilter, search, statFilter]);
 
-  const allSelected = filtered.length > 0 && filtered.every((b) => selected.has(b.id));
+  const tierRank: Record<string, number> = { A: 0, B: 1, AE: 2 };
+  const sortBids = (list: Bid[]): Bid[] => {
+    const arr = [...list];
+    if (sortKey === 'due') {
+      arr.sort((a, b) => {
+        if (!a.due_date && !b.due_date) return 0;
+        if (!a.due_date) return 1;
+        if (!b.due_date) return -1;
+        return a.due_date.localeCompare(b.due_date);
+      });
+    } else if (sortKey === 'tier') {
+      arr.sort((a, b) => (tierRank[a.tier] ?? 99) - (tierRank[b.tier] ?? 99));
+    } else if (sortKey === 'value') {
+      arr.sort((a, b) => {
+        const av = a.estimated_value;
+        const bv = b.estimated_value;
+        if (av == null && bv == null) return 0;
+        if (av == null) return 1;
+        if (bv == null) return -1;
+        return bv - av;
+      });
+    } else if (sortKey === 'created') {
+      arr.sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''));
+    }
+    return arr;
+  };
+
+  const { activeList, expiredList } = useMemo(() => {
+    const today = startOfDay(new Date());
+    const expired: Bid[] = [];
+    const active: Bid[] = [];
+    for (const b of filtered) {
+      if (b.due_date) {
+        const d = differenceInDays(startOfDay(new Date(b.due_date)), today);
+        if (d < -3) {
+          expired.push(b);
+          continue;
+        }
+      }
+      active.push(b);
+    }
+    return { activeList: sortBids(active), expiredList: sortBids(expired) };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtered, sortKey]);
+
+  const allSelected = activeList.length > 0 && activeList.every((b) => selected.has(b.id));
   const someSelected = selected.size > 0 && !allSelected;
 
   const toggleOne = (id: string) => {
