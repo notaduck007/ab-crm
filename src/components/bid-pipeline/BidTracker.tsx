@@ -64,7 +64,7 @@ export default function BidTracker() {
         .select('*')
         .in('status', ['Reviewing', 'Pursuing', 'Submitted', 'Awarded', 'No-Go'])
         .is('archived_at', null)
-        .order('due_date', { ascending: true });
+        .order('due_date', { ascending: true, nullsFirst: false });
       if (error) throw error;
       return data as Bid[];
     },
