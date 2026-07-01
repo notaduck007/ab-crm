@@ -184,7 +184,7 @@ export default function BidPipeline() {
       <ToggleGroup
         type="single"
         value={view}
-        onValueChange={(v) => v && setView(v)}
+        onValueChange={(v) => { if (v) { setView(v); if (v !== 'inbox') setStatFilter(null); } }}
         className="inline-flex rounded-lg border bg-muted p-1"
       >
         <ToggleGroupItem value="inbox" className="rounded-md px-4 py-1.5 text-sm font-medium data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm">
@@ -203,9 +203,10 @@ export default function BidPipeline() {
         </ToggleGroupItem>
       </ToggleGroup>
 
-      {view === 'inbox' && <BidInbox />}
+      {view === 'inbox' && <BidInbox statFilter={statFilter} onClearStatFilter={() => setStatFilter(null)} />}
       {view === 'tracker' && <BidTracker />}
       {view === 'declined' && <BidDeclined />}
+
 
       <Dialog open={importOpen} onOpenChange={(open) => { setImportOpen(open); if (!open) { setImportError(null); } }}>
         <DialogContent className="sm:max-w-2xl">
