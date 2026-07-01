@@ -61,7 +61,7 @@ export default function BidPipeline() {
     },
   });
 
-  const todayStr = new Date().toDateString();
+  
   const newToday = allBids.filter(
     (b) => b.status === 'New' && b.created_at && new Date(b.created_at).toISOString().slice(0, 10) === todayUtc
   ).length;
