@@ -192,7 +192,12 @@ export default function BidInbox({ statFilter = null, onClearStatFilter }: BidIn
   };
   const toggleAll = () => {
     if (allSelected) setSelected(new Set());
-    else setSelected(new Set(filtered.map((b) => b.id)));
+    else setSelected(new Set(activeList.map((b) => b.id)));
+  };
+
+  const isPastDue = (dateStr: string | null) => {
+    if (!dateStr) return false;
+    return differenceInDays(startOfDay(new Date(dateStr)), startOfDay(new Date())) < 0;
   };
 
   const doPursue = (ids: string[]) => {
