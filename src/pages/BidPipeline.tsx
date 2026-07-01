@@ -23,13 +23,18 @@ import BidDeclined from '@/components/bid-pipeline/BidDeclined';
 import { BidDeadlineAlerts } from '@/components/bid-pipeline/BidDeadlineAlerts';
 import { ImportRunBanner } from '@/components/bid-pipeline/ImportRunBanner';
 
+export type InboxStatFilter = 'new-today' | 'closing-14d' | null;
+
 export default function BidPipeline() {
   const queryClient = useQueryClient();
   const [view, setView] = useState('inbox');
+  const [statFilter, setStatFilter] = useState<InboxStatFilter>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState('');
   const [importError, setImportError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
+
+  const todayUtc = new Date().toISOString().slice(0, 10);
 
   const { data: allBids = [] } = useQuery({
     queryKey: ['bids', 'all-stats'],
