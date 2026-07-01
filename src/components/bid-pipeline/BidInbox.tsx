@@ -463,6 +463,61 @@ export default function BidInbox({ statFilter = null, onClearStatFilter }: BidIn
         </div>
       )}
 
+      {/* Expired section (>3 days past due) */}
+      {expiredList.length > 0 && (
+        <div className="rounded-md border bg-muted/30">
+          <button
+            type="button"
+            onClick={() => setExpiredOpen((v) => !v)}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium text-muted-foreground hover:bg-muted/50"
+            aria-expanded={expiredOpen}
+          >
+            {expiredOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+            <span>Expired</span>
+            <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{expiredList.length}</Badge>
+            <span className="ml-1 text-muted-foreground/70">more than 3 days past due</span>
+          </button>
+          {expiredOpen && (
+            <div className="space-y-2 border-t p-3">
+              {expiredList.map((bid) => {
+                const tier = TIER_STYLES[bid.tier] ?? TIER_STYLES.B;
+                return (
+                  <div key={bid.id} className="flex items-center justify-between gap-3 rounded-md border bg-background p-2 opacity-70">
+                    <div className="flex min-w-0 flex-1 items-center gap-2">
+                      <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${tier.bg} ${tier.text}`}>
+                        {tier.label}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[13px] font-medium text-foreground">{bid.project_name}</p>
+                        <p className="truncate text-[11px] text-muted-foreground">{bid.agency}</p>
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="text-[11px] font-medium text-red-600 dark:text-red-400">
+                        {bid.due_date ? `Due ${format(new Date(bid.due_date), 'MMM d, yyyy')}` : 'Due TBD'}
+                      </p>
+                      <div className="mt-1 flex items-center justify-end gap-1">
+                        <Button size="sm" variant="ghost" className="h-6 px-2 text-[11px]" onClick={() => setPending({ kind: 'no-go', ids: [bid.id] })}>
+                          <Ban className="mr-1 h-3 w-3" /> No-Go
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 px-2 text-[11px] text-destructive hover:text-destructive"
+                          onClick={() => { setDeclineReason(''); setPending({ kind: 'decline', ids: [bid.id] }); }}
+                        >
+                          <Slash className="mr-1 h-3 w-3" /> Decline
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Sticky bulk action bar */}
       {selected.size > 0 && (
         <div className="fixed bottom-4 left-1/2 z-40 -translate-x-1/2 rounded-lg border bg-background px-4 py-2 shadow-lg">
