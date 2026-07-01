@@ -314,7 +314,7 @@ export default function BidInbox() {
                       <div className="shrink-0 text-right space-y-1">
                         <p className="text-sm font-semibold text-foreground">{formatValue(bid.estimated_value)}</p>
                         <p className={`text-xs font-medium ${dueDateColor(bid.due_date)}`}>
-                          Due {format(new Date(bid.due_date), 'MMM d, yyyy')}
+                          {bid.due_date ? `Due ${format(new Date(bid.due_date), 'MMM d, yyyy')}` : 'Due TBD'}
                         </p>
                         <div className="flex items-center justify-end gap-1.5">
                           <Badge variant="outline" className="text-[10px]">{bid.delivery_method}</Badge>
