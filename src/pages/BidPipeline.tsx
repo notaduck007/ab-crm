@@ -65,6 +65,7 @@ export default function BidPipeline() {
   const closing14 = allBids.filter(
     (b) =>
       activeStatuses.includes(b.status) &&
+      b.due_date &&
       differenceInDays(new Date(b.due_date), new Date()) <= 14 &&
       differenceInDays(new Date(b.due_date), new Date()) >= 0
   ).length;
