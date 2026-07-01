@@ -137,7 +137,7 @@ export type Database = {
           decline_reason: string | null
           dedup_key: string | null
           delivery_method: Database["public"]["Enums"]["delivery_method"]
-          due_date: string
+          due_date: string | null
           estimated_value: number | null
           id: string
           issue_date: string | null
@@ -163,7 +163,7 @@ export type Database = {
           decline_reason?: string | null
           dedup_key?: string | null
           delivery_method?: Database["public"]["Enums"]["delivery_method"]
-          due_date: string
+          due_date?: string | null
           estimated_value?: number | null
           id?: string
           issue_date?: string | null
@@ -189,7 +189,7 @@ export type Database = {
           decline_reason?: string | null
           dedup_key?: string | null
           delivery_method?: Database["public"]["Enums"]["delivery_method"]
-          due_date?: string
+          due_date?: string | null
           estimated_value?: number | null
           id?: string
           issue_date?: string | null
