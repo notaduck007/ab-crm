@@ -388,8 +388,9 @@ export default function BidInbox({ statFilter = null, onClearStatFilter }: BidIn
           {activeList.map((bid) => {
             const tier = TIER_STYLES[bid.tier] ?? TIER_STYLES.B;
             const isSelected = selected.has(bid.id);
+            const dim = isPastDue(bid.due_date);
             return (
-              <Card key={bid.id} className={`overflow-hidden ${isSelected ? 'ring-2 ring-primary' : ''}`}>
+              <Card key={bid.id} className={`overflow-hidden ${isSelected ? 'ring-2 ring-primary' : ''} ${dim ? 'opacity-60' : ''}`}>
                 <CardContent className="p-4">
                   {/* Main row */}
                   <div className="flex items-start gap-3">
