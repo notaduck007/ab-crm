@@ -49,7 +49,8 @@ function daysUntil(dateStr: string) {
   return differenceInDays(new Date(dateStr), new Date());
 }
 
-function dueDateColor(dateStr: string) {
+function dueDateColor(dateStr: string | null) {
+  if (!dateStr) return 'text-muted-foreground';
   const d = daysUntil(dateStr);
   if (d <= 7) return 'text-red-600 dark:text-red-400';
   if (d <= 14) return 'text-amber-600 dark:text-amber-400';
