@@ -240,7 +240,7 @@ export default function BidDetailPanel({ bidId, onClose, profiles }: Props) {
               <div>
                 <p className="text-xs text-muted-foreground">Due Date</p>
                 <p className={`font-medium ${dueDateColor(bid.due_date)}`}>
-                  {format(new Date(bid.due_date), 'MMM d, yyyy')}
+                  {bid.due_date ? format(new Date(bid.due_date), 'MMM d, yyyy') : 'TBD'}
                 </p>
               </div>
               {bid.issue_date && (
