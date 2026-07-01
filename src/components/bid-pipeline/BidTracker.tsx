@@ -42,7 +42,8 @@ const TIER_STYLES: Record<string, { bg: string; text: string; label: string }> =
 
 const formatValue = (v: number | null) => formatBidValue(v, 'compact');
 
-function dueDateColor(dateStr: string) {
+function dueDateColor(dateStr: string | null) {
+  if (!dateStr) return 'text-muted-foreground';
   const d = differenceInDays(new Date(dateStr), new Date());
   if (d <= 7) return 'text-red-600 dark:text-red-400';
   if (d <= 14) return 'text-amber-600 dark:text-amber-400';
