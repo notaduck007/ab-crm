@@ -62,7 +62,14 @@ type PendingAction =
   | { kind: 'no-go'; ids: string[] }
   | { kind: 'decline'; ids: string[] };
 
-export default function BidInbox() {
+type SortKey = 'due' | 'tier' | 'value' | 'created';
+
+interface BidInboxProps {
+  statFilter?: InboxStatFilter;
+  onClearStatFilter?: () => void;
+}
+
+export default function BidInbox({ statFilter = null, onClearStatFilter }: BidInboxProps) {
   const queryClient = useQueryClient();
   const [tierFilter, setTierFilter] = useState('All');
   const [sectorFilter, setSectorFilter] = useState('All');
@@ -70,6 +77,8 @@ export default function BidInbox() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, setPending] = useState<PendingAction | null>(null);
   const [declineReason, setDeclineReason] = useState('');
+  const [sortKey, setSortKey] = useState<SortKey>('due');
+  const [expiredOpen, setExpiredOpen] = useState(false);
 
   const { data: bids = [], isLoading, error, refetch } = useQuery({
     queryKey: ['bids', 'inbox'],
