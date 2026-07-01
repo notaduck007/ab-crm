@@ -63,7 +63,7 @@ export default function BidPipeline() {
 
   const todayStr = new Date().toDateString();
   const newToday = allBids.filter(
-    (b) => b.status === 'New' && b.created_at && new Date(b.created_at).toDateString() === todayStr
+    (b) => b.status === 'New' && b.created_at && new Date(b.created_at).toISOString().slice(0, 10) === todayUtc
   ).length;
   const pursuing = allBids.filter((b) => b.status === 'Pursuing').length;
   const activeStatuses = ['New', 'Reviewing', 'Pursuing'];
@@ -85,12 +85,23 @@ export default function BidPipeline() {
     return `$${v}`;
   };
 
-  const stats = [
-    { label: 'New today', value: newToday > 0 ? String(newToday) : '—', icon: Sparkles },
+  const stats: Array<{
+    label: string;
+    value: string;
+    icon: typeof Sparkles;
+    filter?: InboxStatFilter;
+  }> = [
+    { label: 'New today', value: newToday > 0 ? String(newToday) : '—', icon: Sparkles, filter: 'new-today' },
     { label: 'Pursuing', value: pursuing > 0 ? String(pursuing) : '—', icon: Target },
-    { label: 'Closing ≤14 days', value: closing14 > 0 ? String(closing14) : '—', icon: CalendarClock },
+    { label: 'Closing ≤14 days', value: closing14 > 0 ? String(closing14) : '—', icon: CalendarClock, filter: 'closing-14d' },
     { label: 'Pipeline value', value: formatPipelineValue(pipelineValue), icon: DollarSign },
   ];
+
+  const handleStatClick = (f: InboxStatFilter | undefined) => {
+    if (!f) return;
+    setView('inbox');
+    setStatFilter((prev) => (prev === f ? null : f));
+  };
 
   const handleImport = async () => {
     setImportError(null);
