@@ -23,13 +23,18 @@ import BidDeclined from '@/components/bid-pipeline/BidDeclined';
 import { BidDeadlineAlerts } from '@/components/bid-pipeline/BidDeadlineAlerts';
 import { ImportRunBanner } from '@/components/bid-pipeline/ImportRunBanner';
 
+export type InboxStatFilter = 'new-today' | 'closing-14d' | null;
+
 export default function BidPipeline() {
   const queryClient = useQueryClient();
   const [view, setView] = useState('inbox');
+  const [statFilter, setStatFilter] = useState<InboxStatFilter>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState('');
   const [importError, setImportError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
+
+  const todayUtc = new Date().toISOString().slice(0, 10);
 
   const { data: allBids = [] } = useQuery({
     queryKey: ['bids', 'all-stats'],
@@ -56,9 +61,9 @@ export default function BidPipeline() {
     },
   });
 
-  const todayStr = new Date().toDateString();
+  
   const newToday = allBids.filter(
-    (b) => b.status === 'New' && b.created_at && new Date(b.created_at).toDateString() === todayStr
+    (b) => b.status === 'New' && b.created_at && new Date(b.created_at).toISOString().slice(0, 10) === todayUtc
   ).length;
   const pursuing = allBids.filter((b) => b.status === 'Pursuing').length;
   const activeStatuses = ['New', 'Reviewing', 'Pursuing'];
@@ -80,12 +85,23 @@ export default function BidPipeline() {
     return `$${v}`;
   };
 
-  const stats = [
-    { label: 'New today', value: newToday > 0 ? String(newToday) : '—', icon: Sparkles },
+  const stats: Array<{
+    label: string;
+    value: string;
+    icon: typeof Sparkles;
+    filter?: InboxStatFilter;
+  }> = [
+    { label: 'New today', value: newToday > 0 ? String(newToday) : '—', icon: Sparkles, filter: 'new-today' },
     { label: 'Pursuing', value: pursuing > 0 ? String(pursuing) : '—', icon: Target },
-    { label: 'Closing ≤14 days', value: closing14 > 0 ? String(closing14) : '—', icon: CalendarClock },
+    { label: 'Closing ≤14 days', value: closing14 > 0 ? String(closing14) : '—', icon: CalendarClock, filter: 'closing-14d' },
     { label: 'Pipeline value', value: formatPipelineValue(pipelineValue), icon: DollarSign },
   ];
+
+  const handleStatClick = (f: InboxStatFilter | undefined) => {
+    if (!f) return;
+    setView('inbox');
+    setStatFilter((prev) => (prev === f ? null : f));
+  };
 
   const handleImport = async () => {
     setImportError(null);
@@ -138,25 +154,37 @@ export default function BidPipeline() {
       <BidDeadlineAlerts className="space-y-2" />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {stats.map((s) => (
-          <Card key={s.label} className="border-dashed">
-            <CardContent className="flex items-center gap-3 p-4">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted">
-                <s.icon className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">{s.label}</p>
-                <p className="text-lg font-semibold text-foreground">{s.value}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+        {stats.map((s) => {
+          const clickable = !!s.filter;
+          const active = clickable && statFilter === s.filter;
+          return (
+            <Card
+              key={s.label}
+              onClick={clickable ? () => handleStatClick(s.filter) : undefined}
+              className={`border-dashed transition-colors ${
+                clickable ? 'cursor-pointer hover:bg-muted/40' : ''
+              } ${active ? 'border-primary bg-primary/5' : ''}`}
+              aria-pressed={clickable ? active : undefined}
+            >
+              <CardContent className="flex items-center gap-3 p-4">
+                <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md ${active ? 'bg-primary/15' : 'bg-muted'}`}>
+                  <s.icon className={`h-4 w-4 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">{s.label}</p>
+                  <p className="text-lg font-semibold text-foreground">{s.value}</p>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
+
 
       <ToggleGroup
         type="single"
         value={view}
-        onValueChange={(v) => v && setView(v)}
+        onValueChange={(v) => { if (v) { setView(v); if (v !== 'inbox') setStatFilter(null); } }}
         className="inline-flex rounded-lg border bg-muted p-1"
       >
         <ToggleGroupItem value="inbox" className="rounded-md px-4 py-1.5 text-sm font-medium data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm">
@@ -175,9 +203,10 @@ export default function BidPipeline() {
         </ToggleGroupItem>
       </ToggleGroup>
 
-      {view === 'inbox' && <BidInbox />}
+      {view === 'inbox' && <BidInbox statFilter={statFilter} onClearStatFilter={() => setStatFilter(null)} />}
       {view === 'tracker' && <BidTracker />}
       {view === 'declined' && <BidDeclined />}
+
 
       <Dialog open={importOpen} onOpenChange={(open) => { setImportOpen(open); if (!open) { setImportError(null); } }}>
         <DialogContent className="sm:max-w-2xl">

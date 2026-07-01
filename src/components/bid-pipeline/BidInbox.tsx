@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
@@ -27,9 +28,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Inbox, ExternalLink, Search, Ban, Eye, Target, Slash } from 'lucide-react';
+import { Inbox, ExternalLink, Search, Ban, Eye, Target, Slash, ChevronDown, ChevronRight, X as XIcon } from 'lucide-react';
 import { toast } from 'sonner';
-import { differenceInDays, format } from 'date-fns';
+import { differenceInDays, format, startOfDay } from 'date-fns';
+import type { InboxStatFilter } from '@/pages/BidPipeline';
 import { formatBidValue } from '@/lib/formatValue';
 
 type Bid = Tables<'bids'>;
@@ -61,7 +63,14 @@ type PendingAction =
   | { kind: 'no-go'; ids: string[] }
   | { kind: 'decline'; ids: string[] };
 
-export default function BidInbox() {
+type SortKey = 'due' | 'tier' | 'value' | 'created';
+
+interface BidInboxProps {
+  statFilter?: InboxStatFilter;
+  onClearStatFilter?: () => void;
+}
+
+export default function BidInbox({ statFilter = null, onClearStatFilter }: BidInboxProps) {
   const queryClient = useQueryClient();
   const [tierFilter, setTierFilter] = useState('All');
   const [sectorFilter, setSectorFilter] = useState('All');
@@ -69,6 +78,8 @@ export default function BidInbox() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, setPending] = useState<PendingAction | null>(null);
   const [declineReason, setDeclineReason] = useState('');
+  const [sortKey, setSortKey] = useState<SortKey>('due');
+  const [expiredOpen, setExpiredOpen] = useState(false);
 
   const { data: bids = [], isLoading, error, refetch } = useQuery({
     queryKey: ['bids', 'inbox'],
@@ -105,15 +116,71 @@ export default function BidInbox() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
+    const todayUtc = new Date().toISOString().slice(0, 10);
+    const today = startOfDay(new Date());
     return bids.filter((b) => {
       if (tierFilter !== 'All' && b.tier !== tierFilter) return false;
       if (sectorFilter !== 'All' && b.sector !== sectorFilter) return false;
       if (q && !b.project_name.toLowerCase().includes(q) && !b.agency.toLowerCase().includes(q)) return false;
+      if (statFilter === 'new-today') {
+        if (!b.created_at) return false;
+        if (new Date(b.created_at).toISOString().slice(0, 10) !== todayUtc) return false;
+      }
+      if (statFilter === 'closing-14d') {
+        if (!b.due_date) return false;
+        const d = differenceInDays(new Date(b.due_date), today);
+        if (d < 0 || d > 14) return false;
+      }
       return true;
     });
-  }, [bids, tierFilter, sectorFilter, search]);
+  }, [bids, tierFilter, sectorFilter, search, statFilter]);
 
-  const allSelected = filtered.length > 0 && filtered.every((b) => selected.has(b.id));
+  const tierRank: Record<string, number> = { A: 0, B: 1, AE: 2 };
+  const sortBids = (list: Bid[]): Bid[] => {
+    const arr = [...list];
+    if (sortKey === 'due') {
+      arr.sort((a, b) => {
+        if (!a.due_date && !b.due_date) return 0;
+        if (!a.due_date) return 1;
+        if (!b.due_date) return -1;
+        return a.due_date.localeCompare(b.due_date);
+      });
+    } else if (sortKey === 'tier') {
+      arr.sort((a, b) => (tierRank[a.tier] ?? 99) - (tierRank[b.tier] ?? 99));
+    } else if (sortKey === 'value') {
+      arr.sort((a, b) => {
+        const av = a.estimated_value;
+        const bv = b.estimated_value;
+        if (av == null && bv == null) return 0;
+        if (av == null) return 1;
+        if (bv == null) return -1;
+        return bv - av;
+      });
+    } else if (sortKey === 'created') {
+      arr.sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''));
+    }
+    return arr;
+  };
+
+  const { activeList, expiredList } = useMemo(() => {
+    const today = startOfDay(new Date());
+    const expired: Bid[] = [];
+    const active: Bid[] = [];
+    for (const b of filtered) {
+      if (b.due_date) {
+        const d = differenceInDays(startOfDay(new Date(b.due_date)), today);
+        if (d < -3) {
+          expired.push(b);
+          continue;
+        }
+      }
+      active.push(b);
+    }
+    return { activeList: sortBids(active), expiredList: sortBids(expired) };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtered, sortKey]);
+
+  const allSelected = activeList.length > 0 && activeList.every((b) => selected.has(b.id));
   const someSelected = selected.size > 0 && !allSelected;
 
   const toggleOne = (id: string) => {
@@ -126,7 +193,12 @@ export default function BidInbox() {
   };
   const toggleAll = () => {
     if (allSelected) setSelected(new Set());
-    else setSelected(new Set(filtered.map((b) => b.id)));
+    else setSelected(new Set(activeList.map((b) => b.id)));
+  };
+
+  const isPastDue = (dateStr: string | null) => {
+    if (!dateStr) return false;
+    return differenceInDays(startOfDay(new Date(dateStr)), startOfDay(new Date())) < 0;
   };
 
   const doPursue = (ids: string[]) => {
@@ -253,10 +325,39 @@ export default function BidInbox() {
             className="pl-8 text-sm"
           />
         </div>
+
+        <Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
+          <SelectTrigger className="h-9 w-[160px] text-xs">
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="due">Sort: Due date</SelectItem>
+            <SelectItem value="tier">Sort: Tier</SelectItem>
+            <SelectItem value="value">Sort: Est. value</SelectItem>
+            <SelectItem value="created">Sort: Created date</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
+      {/* Stat filter indicator */}
+      {statFilter && (
+        <div className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs">
+          <span className="font-medium text-foreground">
+            Filter active — {statFilter === 'new-today' ? 'New today' : 'Closing ≤14 days'}
+          </span>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="ml-auto h-6 px-2 text-xs"
+            onClick={() => onClearStatFilter?.()}
+          >
+            <XIcon className="mr-1 h-3 w-3" /> Clear
+          </Button>
+        </div>
+      )}
+
       {/* Select-all bar */}
-      {filtered.length > 0 && (
+      {activeList.length > 0 && (
         <div className="flex items-center gap-2 px-1 text-xs text-muted-foreground">
           <Checkbox
             checked={allSelected ? true : someSelected ? 'indeterminate' : false}
@@ -266,13 +367,13 @@ export default function BidInbox() {
           <span>
             {selected.size > 0
               ? `${selected.size} selected`
-              : `Select all (${filtered.length})`}
+              : `Select all (${activeList.length})`}
           </span>
         </div>
       )}
 
       {/* Bid cards */}
-      {filtered.length === 0 ? (
+      {activeList.length === 0 && expiredList.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
             <Inbox className="mb-3 h-10 w-10 text-muted-foreground/50" />
@@ -284,11 +385,12 @@ export default function BidInbox() {
         </Card>
       ) : (
         <div className="space-y-3">
-          {filtered.map((bid) => {
+          {activeList.map((bid) => {
             const tier = TIER_STYLES[bid.tier] ?? TIER_STYLES.B;
             const isSelected = selected.has(bid.id);
+            const dim = isPastDue(bid.due_date);
             return (
-              <Card key={bid.id} className={`overflow-hidden ${isSelected ? 'ring-2 ring-primary' : ''}`}>
+              <Card key={bid.id} className={`overflow-hidden ${isSelected ? 'ring-2 ring-primary' : ''} ${dim ? 'opacity-60' : ''}`}>
                 <CardContent className="p-4">
                   {/* Main row */}
                   <div className="flex items-start gap-3">
@@ -358,6 +460,61 @@ export default function BidInbox() {
               </Card>
             );
           })}
+        </div>
+      )}
+
+      {/* Expired section (>3 days past due) */}
+      {expiredList.length > 0 && (
+        <div className="rounded-md border bg-muted/30">
+          <button
+            type="button"
+            onClick={() => setExpiredOpen((v) => !v)}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium text-muted-foreground hover:bg-muted/50"
+            aria-expanded={expiredOpen}
+          >
+            {expiredOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+            <span>Expired</span>
+            <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{expiredList.length}</Badge>
+            <span className="ml-1 text-muted-foreground/70">more than 3 days past due</span>
+          </button>
+          {expiredOpen && (
+            <div className="space-y-2 border-t p-3">
+              {expiredList.map((bid) => {
+                const tier = TIER_STYLES[bid.tier] ?? TIER_STYLES.B;
+                return (
+                  <div key={bid.id} className="flex items-center justify-between gap-3 rounded-md border bg-background p-2 opacity-70">
+                    <div className="flex min-w-0 flex-1 items-center gap-2">
+                      <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${tier.bg} ${tier.text}`}>
+                        {tier.label}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[13px] font-medium text-foreground">{bid.project_name}</p>
+                        <p className="truncate text-[11px] text-muted-foreground">{bid.agency}</p>
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="text-[11px] font-medium text-red-600 dark:text-red-400">
+                        {bid.due_date ? `Due ${format(new Date(bid.due_date), 'MMM d, yyyy')}` : 'Due TBD'}
+                      </p>
+                      <div className="mt-1 flex items-center justify-end gap-1">
+                        <Button size="sm" variant="ghost" className="h-6 px-2 text-[11px]" onClick={() => setPending({ kind: 'no-go', ids: [bid.id] })}>
+                          <Ban className="mr-1 h-3 w-3" /> No-Go
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 px-2 text-[11px] text-destructive hover:text-destructive"
+                          onClick={() => { setDeclineReason(''); setPending({ kind: 'decline', ids: [bid.id] }); }}
+                        >
+                          <Slash className="mr-1 h-3 w-3" /> Decline
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
