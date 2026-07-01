@@ -282,7 +282,7 @@ export default function BidTracker() {
                                           {formatValue(bid.estimated_value)}
                                         </span>
                                         <span className={`text-[11px] font-medium ${dueDateColor(bid.due_date)}`}>
-                                          {format(new Date(bid.due_date), 'MMM d')}
+                                          {bid.due_date ? format(new Date(bid.due_date), 'MMM d') : 'TBD'}
                                         </span>
                                       </div>
                                       {assigneeName && (
