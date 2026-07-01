@@ -154,20 +154,32 @@ export default function BidPipeline() {
       <BidDeadlineAlerts className="space-y-2" />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {stats.map((s) => (
-          <Card key={s.label} className="border-dashed">
-            <CardContent className="flex items-center gap-3 p-4">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted">
-                <s.icon className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">{s.label}</p>
-                <p className="text-lg font-semibold text-foreground">{s.value}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+        {stats.map((s) => {
+          const clickable = !!s.filter;
+          const active = clickable && statFilter === s.filter;
+          return (
+            <Card
+              key={s.label}
+              onClick={clickable ? () => handleStatClick(s.filter) : undefined}
+              className={`border-dashed transition-colors ${
+                clickable ? 'cursor-pointer hover:bg-muted/40' : ''
+              } ${active ? 'border-primary bg-primary/5' : ''}`}
+              aria-pressed={clickable ? active : undefined}
+            >
+              <CardContent className="flex items-center gap-3 p-4">
+                <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md ${active ? 'bg-primary/15' : 'bg-muted'}`}>
+                  <s.icon className={`h-4 w-4 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">{s.label}</p>
+                  <p className="text-lg font-semibold text-foreground">{s.value}</p>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
+
 
       <ToggleGroup
         type="single"
