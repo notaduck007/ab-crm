@@ -49,7 +49,8 @@ function daysUntil(dateStr: string) {
   return differenceInDays(new Date(dateStr), new Date());
 }
 
-function dueDateColor(dateStr: string) {
+function dueDateColor(dateStr: string | null) {
+  if (!dateStr) return 'text-muted-foreground';
   const d = daysUntil(dateStr);
   if (d <= 7) return 'text-red-600 dark:text-red-400';
   if (d <= 14) return 'text-amber-600 dark:text-amber-400';
@@ -77,7 +78,7 @@ export default function BidInbox() {
         .select('*')
         .eq('status', 'New')
         .is('archived_at', null)
-        .order('due_date', { ascending: true });
+        .order('due_date', { ascending: true, nullsFirst: false });
       if (error) throw error;
       return data as Bid[];
     },
@@ -313,7 +314,7 @@ export default function BidInbox() {
                       <div className="shrink-0 text-right space-y-1">
                         <p className="text-sm font-semibold text-foreground">{formatValue(bid.estimated_value)}</p>
                         <p className={`text-xs font-medium ${dueDateColor(bid.due_date)}`}>
-                          Due {format(new Date(bid.due_date), 'MMM d, yyyy')}
+                          {bid.due_date ? `Due ${format(new Date(bid.due_date), 'MMM d, yyyy')}` : 'Due TBD'}
                         </p>
                         <div className="flex items-center justify-end gap-1.5">
                           <Badge variant="outline" className="text-[10px]">{bid.delivery_method}</Badge>

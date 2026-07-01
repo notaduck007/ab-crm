@@ -42,7 +42,8 @@ const TIER_STYLES: Record<string, { bg: string; text: string; label: string }> =
 
 const formatValue = (v: number | null) => formatBidValue(v, 'compact');
 
-function dueDateColor(dateStr: string) {
+function dueDateColor(dateStr: string | null) {
+  if (!dateStr) return 'text-muted-foreground';
   const d = differenceInDays(new Date(dateStr), new Date());
   if (d <= 7) return 'text-red-600 dark:text-red-400';
   if (d <= 14) return 'text-amber-600 dark:text-amber-400';
@@ -63,7 +64,7 @@ export default function BidTracker() {
         .select('*')
         .in('status', ['Reviewing', 'Pursuing', 'Submitted', 'Awarded', 'No-Go'])
         .is('archived_at', null)
-        .order('due_date', { ascending: true });
+        .order('due_date', { ascending: true, nullsFirst: false });
       if (error) throw error;
       return data as Bid[];
     },
@@ -281,7 +282,7 @@ export default function BidTracker() {
                                           {formatValue(bid.estimated_value)}
                                         </span>
                                         <span className={`text-[11px] font-medium ${dueDateColor(bid.due_date)}`}>
-                                          {format(new Date(bid.due_date), 'MMM d')}
+                                          {bid.due_date ? format(new Date(bid.due_date), 'MMM d') : 'TBD'}
                                         </span>
                                       </div>
                                       {assigneeName && (

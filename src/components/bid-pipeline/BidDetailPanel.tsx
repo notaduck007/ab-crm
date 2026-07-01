@@ -30,7 +30,8 @@ const TIER_STYLES: Record<string, { bg: string; text: string; label: string }> =
 
 const formatValue = (v: number | null) => formatBidValue(v, 'full');
 
-function dueDateColor(dateStr: string) {
+function dueDateColor(dateStr: string | null) {
+  if (!dateStr) return 'text-muted-foreground';
   const d = differenceInDays(new Date(dateStr), new Date());
   if (d <= 7) return 'text-red-600 dark:text-red-400';
   if (d <= 14) return 'text-amber-600 dark:text-amber-400';
@@ -239,7 +240,7 @@ export default function BidDetailPanel({ bidId, onClose, profiles }: Props) {
               <div>
                 <p className="text-xs text-muted-foreground">Due Date</p>
                 <p className={`font-medium ${dueDateColor(bid.due_date)}`}>
-                  {format(new Date(bid.due_date), 'MMM d, yyyy')}
+                  {bid.due_date ? format(new Date(bid.due_date), 'MMM d, yyyy') : 'TBD'}
                 </p>
               </div>
               {bid.issue_date && (
