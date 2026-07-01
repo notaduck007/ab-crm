@@ -26,6 +26,7 @@ export function BidPipelineWidget() {
   const closing14 = bids.filter(
     (b) =>
       ['Pursuing', 'Submitted'].includes(b.status) &&
+      b.due_date &&
       differenceInDays(new Date(b.due_date), new Date()) <= 14 &&
       differenceInDays(new Date(b.due_date), new Date()) >= 0
   ).length;
