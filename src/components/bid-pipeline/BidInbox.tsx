@@ -78,7 +78,7 @@ export default function BidInbox() {
         .select('*')
         .eq('status', 'New')
         .is('archived_at', null)
-        .order('due_date', { ascending: true });
+        .order('due_date', { ascending: true, nullsFirst: false });
       if (error) throw error;
       return data as Bid[];
     },
